@@ -60,7 +60,7 @@ Failures -> typed exceptions -> ProblemDetails (RFC 9457) with traceId
 | 3 | `UseStatusCodePages` | Gives body-less error responses (for example unknown routes) a ProblemDetails body |
 | 4 | OpenAPI + Scalar (Development only) | Documentation endpoints (ADR-0013) |
 | 5 | `/health/live` | Liveness probe; runs no dependency checks |
-| 6 | `/health/ready` | Readiness probe; checks the database (health checks tagged `ready`) |
+| 6 | `/health/ready` | Readiness probe; checks the database (health checks tagged `ready`) with a 5-second timeout, because connection retries would otherwise delay the answer by about a minute |
 
 The service provider validates registrations at startup (`ValidateOnBuild`, `ValidateScopes`), and a failed
 startup is logged and exits with code 1 (ADR-0007).

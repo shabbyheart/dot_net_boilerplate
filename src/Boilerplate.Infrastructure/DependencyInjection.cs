@@ -4,6 +4,7 @@ using Boilerplate.Infrastructure.Persistence.Interceptors;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 
 namespace Boilerplate.Infrastructure;
@@ -16,6 +17,10 @@ public static class DependencyInjection
 {
     /// <summary>Health checks with this tag report whether the application can serve traffic (<c>/health/ready</c>).</summary>
     public const string ReadyHealthCheckTag = "ready";
+
+    private const string DatabaseHealthCheckName = "database";
+
+    private static readonly TimeSpan DatabaseHealthCheckTimeout = TimeSpan.FromSeconds(5);
 
     public static IServiceCollection AddInfrastructure(this IServiceCollection services)
     {
@@ -33,7 +38,13 @@ public static class DependencyInjection
         services.AddScoped<IAppDbContext>(provider => provider.GetRequiredService<AppDbContext>());
 
         services.AddHealthChecks()
-            .AddDbContextCheck<AppDbContext>("database", tags: [ReadyHealthCheckTag]);
+            .AddDbContextCheck<AppDbContext>(DatabaseHealthCheckName, tags: [ReadyHealthCheckTag]);
+
+        // Connection retries (EnableRetryOnFailure) would keep a failing check running for about a minute;
+        // probes need a prompt answer, so the check gives up and reports Unhealthy after a fixed time.
+        services.Configure<HealthCheckServiceOptions>(options =>
+            options.Registrations.Single(registration => registration.Name == DatabaseHealthCheckName).Timeout =
+                DatabaseHealthCheckTimeout);
 
         return services;
     }
