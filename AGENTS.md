@@ -118,6 +118,10 @@ The rules in [docs/architecture.md](docs/architecture.md) are enforced by `Boile
 - Permissions are checked against the database on every request (no cache). Do not add caching without a
   superseding ADR that states the revocation guarantee.
 - Authorization data is tenant-owned: roles and assignments never apply across tenants.
+- Every permission constant is listed in `PermissionCatalog.All` (ADR-0022); `PermissionCatalogTests` enforces it.
+- Role administration must go through `RoleEscalationGuard`; never let a caller grant, remove or hand out a
+  permission they do not hold. Use `ForbiddenException` (403) for such refusals.
+- Work without an HTTP user (commands, background jobs) sets the tenant with `TenantOverride`, never by faking claims.
 
 ## Tenancy (ADR-0010)
 

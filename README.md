@@ -3,13 +3,14 @@
 A reusable ASP.NET Core backend foundation: four projects (Domain, Application, Infrastructure, Api)
 with vertical feature slices, enforced dependency rules, and tests from the first commit.
 
-Status: **M4, reference feature** (completed after M5 and M6). The API has structured logging, a ProblemDetails
-error contract, liveness and readiness probes, and (in Development) an OpenAPI document. Every endpoint requires a
-valid JWT bearer token unless it is explicitly anonymous, and endpoints can require permissions granted through
-tenant-scoped roles, checked on every request so revocation is immediate. It stores data in PostgreSQL through
-EF Core, with tenant isolation driven by the token's `tenant_id` claim. A small `projects` feature shows how every
-feature is built ([how to add a feature](docs/how-to-add-a-feature.md)). It ships as a non-root container image,
-and a compose stack runs it locally with PostgreSQL.
+Status: **M7, role administration.** The API has structured logging, a ProblemDetails error contract, liveness
+and readiness probes, and (in Development) an OpenAPI document. Every endpoint requires a valid JWT bearer token
+unless it is explicitly anonymous, and endpoints can require permissions granted through tenant-scoped roles,
+checked on every request so revocation is immediate. Roles are administered over HTTP with an escalation guard,
+and a one-off `bootstrap` command creates a tenant and its first administrator. It stores data in PostgreSQL
+through EF Core, with tenant isolation driven by the token's `tenant_id` claim. A small `projects` feature shows
+how every feature is built ([how to add a feature](docs/how-to-add-a-feature.md)). It ships as a non-root container
+image, and a compose stack runs it locally with PostgreSQL.
 
 ## Requirements
 
@@ -44,14 +45,20 @@ dotnet user-secrets set "Database:ConnectionString" "Host=localhost;Database=boi
 dotnet tool restore
 Database__ConnectionString="<same connection string>" dotnet ef database update --project src/Boilerplate.Infrastructure
 
-# 4. Create a development token. This also writes the issuer and audience the API accepts
-#    (signing key in user secrets, issuer and audience in appsettings.Development.json).
-dotnet user-jwts create --project src/Boilerplate.Api --claim tenant_id=<a tenant id>
+# 4. Create a tenant and make yourself its administrator (idempotent; prints the tenant id)
+dotnet run --project src/Boilerplate.Api -- bootstrap --tenant-name "Acme" --admin-user <your token subject>
 
-# 5. Run the API (Development, http://localhost:5080) and call it with the token
+# 5. Create a development token for that subject and tenant. This also writes the issuer and audience the API
+#    accepts (signing key in user secrets, issuer and audience in appsettings.Development.json).
+dotnet user-jwts create --project src/Boilerplate.Api --name <your token subject> --claim tenant_id=<tenant id>
+
+# 6. Run the API (Development, http://localhost:5080) and call it with the token
 dotnet run --project src/Boilerplate.Api
-curl -H "Authorization: Bearer <token>" http://localhost:5080/api/v1/me
+curl -H "Authorization: Bearer <token>" http://localhost:5080/api/v1/roles
 ```
+
+The bootstrap command runs after migrations as a deployment step, never on startup ([ADR-0022](docs/adr/0022-role-administration-and-bootstrap.md)).
+In a container: `docker compose -f deploy/compose.yaml run --rm api bootstrap --tenant-name "Acme" --admin-user <subject>`.
 
 In other environments, configure the issuer through `Authentication:Schemes:Bearer`: `Authority` and
 `ValidAudiences` for an OpenID Connect provider ([ADR-0016](docs/adr/0016-authentication.md)).
@@ -90,6 +97,11 @@ See [ADR-0018](docs/adr/0018-containers-and-ci.md).
 | `POST /api/v1/projects` | All | `projects.manage` | Create (201 with `Location`; 409 on a duplicate name) |
 | `PUT /api/v1/projects/{id}` | All | `projects.manage` | Replace name and description |
 | `DELETE /api/v1/projects/{id}` | All | `projects.manage` | Delete (204) |
+| `GET /api/v1/permissions` | All | `roles.read` | Every permission a role can grant |
+| `GET /api/v1/roles`, `GET /api/v1/roles/{id}` | All | `roles.read` | Roles with their permissions (`isAdministrator` = all permissions) |
+| `POST /api/v1/roles`, `PUT/DELETE /api/v1/roles/{id}` | All | `roles.manage` | Create, replace, delete; only permissions you hold (403 otherwise) |
+| `GET /api/v1/roles/{id}/assignments` | All | `roles.read` | Users (token subjects) who hold the role |
+| `PUT/DELETE /api/v1/roles/{id}/assignments/{userId}` | All | `roles.manage` | Assign (idempotent) or unassign; the last administrator stays (409) |
 | `/health/live` | All | Anonymous | Liveness: the process can serve requests (no dependency checks) |
 | `/health/ready` | All | Anonymous | Readiness: the database is reachable |
 | `/openapi/v1.json` | Development | Anonymous | OpenAPI document |
@@ -106,7 +118,7 @@ CI scans the full git history with gitleaks.
 
 | Setting | Required | Source |
 |---|---|---|
-| `Database:ConnectionString` (`Database__ConnectionString`) | Yes; startup fails without it | User secrets or environment variable |
+| `Database:ConnectionString` (`Database__ConnectionString`) | Yes; startup fails without it | User secrets or environment variable. In the container add `GSS Encryption Mode=Disable` unless you use Kerberos: the chiseled image has no Kerberos library |
 | `Authentication:Schemes:Bearer:ValidAudiences` | Yes; startup fails without it | Configuration or environment variable |
 | `Authentication:Schemes:Bearer:Authority`, or `ValidIssuer` with `SigningKeys` | Yes; startup fails without one | Configuration; signing keys only in user secrets (development) |
 

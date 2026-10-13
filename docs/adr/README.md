@@ -35,7 +35,7 @@ the decision, the reasoning and the trade-offs.
 | 0019 | Outbox and background processing | Not yet written | M9 |
 | [0020](0020-api-style-and-versioning.md) | API style (controllers) and versioning (`/api/v1`) | Accepted | M5 |
 | [0021](0021-pagination.md) | Pagination of list endpoints | Accepted | M4 |
-| 0022 | Tenant and first-administrator bootstrap (one-off CLI command; decided, not yet written) | Not yet written | M7 |
+| [0022](0022-role-administration-and-bootstrap.md) | Role administration, administrator role and tenant bootstrap | Accepted | M7 |
 
 ## Template
 

@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Boilerplate.IntegrationTests.Support;
 
 namespace Boilerplate.IntegrationTests;
@@ -21,53 +20,21 @@ public sealed class StartupFailureTests
     [InlineData("Authentication__Schemes__Bearer__ValidAudiences__0", "", "Authentication:Schemes:Bearer:ValidAudiences is required.")]
     public async Task Host_exits_with_code_1_when_configuration_is_invalid(string setting, string value, string expectedReason)
     {
-        var cancellationToken = TestContext.Current.CancellationToken;
-        var apiAssemblyPath = Path.Combine(AppContext.BaseDirectory, "Boilerplate.Api.dll");
-
-        var startInfo = new ProcessStartInfo(DotnetHostPath(), [apiAssemblyPath])
-        {
-            WorkingDirectory = AppContext.BaseDirectory,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-        };
-
         // A valid baseline, so the setting under test is the only reason for the failure.
-        startInfo.Environment["ASPNETCORE_ENVIRONMENT"] = "Production";
-        startInfo.Environment["ASPNETCORE_URLS"] = "http://127.0.0.1:0";
-        startInfo.Environment["Database__ConnectionString"] = ValidConnectionString;
-        startInfo.Environment["Authentication__Schemes__Bearer__Authority"] = "https://issuer.example";
-        startInfo.Environment["Authentication__Schemes__Bearer__ValidAudiences__0"] = TestTokens.Audience;
-        startInfo.Environment[setting] = value;
-
-        using var process = Process.Start(startInfo)
-            ?? throw new InvalidOperationException("Could not start the API process.");
-
-        try
+        var environment = new Dictionary<string, string>
         {
-            var standardOutput = process.StandardOutput.ReadToEndAsync(cancellationToken);
-            var standardError = process.StandardError.ReadToEndAsync(cancellationToken);
+            ["ASPNETCORE_ENVIRONMENT"] = "Production",
+            ["ASPNETCORE_URLS"] = "http://127.0.0.1:0",
+            ["Database__ConnectionString"] = ValidConnectionString,
+            ["Authentication__Schemes__Bearer__Authority"] = "https://issuer.example",
+            ["Authentication__Schemes__Bearer__ValidAudiences__0"] = TestTokens.Audience,
+        };
+        environment[setting] = value;
 
-            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeout.CancelAfter(TimeSpan.FromSeconds(60));
-            await process.WaitForExitAsync(timeout.Token);
+        var result = await ApiProcess.RunAsync(environment, [], TestContext.Current.CancellationToken);
 
-            var output = await standardOutput + await standardError;
-            process.ExitCode.ShouldBe(1, output);
-            output.ShouldContain("Host terminated unexpectedly");
-            output.ShouldContain(expectedReason);
-        }
-        finally
-        {
-            // A host that unexpectedly starts would keep running and hold the test runner's output pipes open.
-            if (!process.HasExited)
-            {
-                process.Kill(entireProcessTree: true);
-            }
-        }
+        result.ExitCode.ShouldBe(1, result.Output);
+        result.Output.ShouldContain("Host terminated unexpectedly");
+        result.Output.ShouldContain(expectedReason);
     }
-
-    // The .NET CLI sets DOTNET_HOST_PATH for processes it starts; fall back to dotnet on PATH.
-    private static string DotnetHostPath() =>
-        Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") is { Length: > 0 } path ? path : "dotnet";
 }

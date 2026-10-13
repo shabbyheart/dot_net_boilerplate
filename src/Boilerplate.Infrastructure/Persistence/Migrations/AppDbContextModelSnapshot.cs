@@ -37,6 +37,10 @@ namespace Boilerplate.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("created_by");
 
+                    b.Property<bool>("IsAdministrator")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_administrator");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -58,6 +62,11 @@ namespace Boilerplate.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_roles");
+
+                    b.HasIndex("TenantId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_roles_one_administrator_per_tenant")
+                        .HasFilter("is_administrator");
 
                     b.HasIndex("TenantId", "Name")
                         .IsUnique()
@@ -198,6 +207,10 @@ namespace Boilerplate.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_tenants");
+
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_tenants_name");
 
                     b.ToTable("tenants", (string)null);
                 });
