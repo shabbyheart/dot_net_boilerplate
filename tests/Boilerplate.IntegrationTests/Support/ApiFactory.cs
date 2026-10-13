@@ -16,7 +16,14 @@ public sealed class ApiFactory(PostgresFixture postgres) : WebApplicationFactory
     {
         builder.UseEnvironment("Development");
         builder.ConfigureAppConfiguration((_, configuration) => configuration
-            .AddInMemoryCollection(new Dictionary<string, string?> { ["Database:ConnectionString"] = postgres.ConnectionString })
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Database:ConnectionString"] = postgres.ConnectionString,
+
+                // Test hosts share one database; only tests that exercise the dispatcher turn it on (OutboxDispatchTests).
+                ["Outbox:Enabled"] = "false",
+            })
+            .AddInMemoryCollection(PersistenceServices.UnusedSmtpSettings)
             .AddInMemoryCollection(TestTokens.ApiSettings));
         builder.ConfigureServices(services =>
         {

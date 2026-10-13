@@ -142,3 +142,22 @@ flowchart LR
 
 Without a current tenant, tenant-owned reads return no rows and writes throw (fail closed). Details and known
 gaps (raw SQL, caches, background jobs) are in [ADR-0010](adr/0010-tenancy-model.md).
+
+## Outbox and e-mail (ADR-0019)
+
+```mermaid
+flowchart LR
+  H["Handler"] -->|"Outbox.Enqueue + SaveChangesAsync (one transaction)"| T[("outbox_messages")]
+  D["OutboxDispatcher (hosted service)"] -->|"claim: UPDATE ... FOR UPDATE SKIP LOCKED (lease)"| T
+  D --> P["IOutboxMessageHandler&lt;T&gt; (own scope, TenantOverride)"]
+  P -->|EmailMessage| S["IEmailSender → MailKit SMTP"]
+```
+
+| Piece | Project | Responsibility |
+|---|---|---|
+| `Outbox`, `OutboxMessage`, `IOutboxMessageHandler<T>`, `AddOutboxMessage` | Application | Enqueue in the use case's unit of work; register message types and handlers |
+| `EmailMessage`, `IEmailSender`, `SendEmailHandler` | Application | The built-in e-mail message and its port |
+| `OutboxProcessor`, `OutboxDispatcher`, `OutboxOptions` | Infrastructure | Claim with a lease, handle per tenant, retry with backoff, dead-letter, clear delivered payloads |
+| `MailKitEmailSender`, `SmtpOptions` | Infrastructure | SMTP delivery; the outbox id becomes the `Message-ID` |
+
+No database transaction is held while a handler calls an external service; delivery is at least once.

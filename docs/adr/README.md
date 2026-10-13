@@ -32,7 +32,7 @@ the decision, the reasoning and the trade-offs.
 | [0016](0016-authentication.md) | Authentication (JWT bearer validation; issuer chosen before deployment) | Accepted | M5 |
 | [0017](0017-authorization-and-revocation.md) | Authorization and revocation (permissions through roles, no cache) | Accepted | M6 |
 | [0018](0018-containers-and-ci.md) | Containers and CI | Accepted (CD open until A14) | M2 |
-| 0019 | Outbox and background processing | Not yet written | M9 |
+| [0019](0019-outbox-and-email.md) | Outbox, background dispatch and e-mail | Accepted | M9 |
 | [0020](0020-api-style-and-versioning.md) | API style (controllers) and versioning (`/api/v1`) | Accepted | M5 |
 | [0021](0021-pagination.md) | Pagination of list endpoints | Accepted | M4 |
 | [0022](0022-role-administration-and-bootstrap.md) | Role administration, administrator role and tenant bootstrap | Accepted | M7 |

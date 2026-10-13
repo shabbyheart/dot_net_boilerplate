@@ -80,6 +80,21 @@ Validator unit tests: like [`ProjectValidatorTests.cs`](../tests/Boilerplate.Uni
 - `[ProducesResponseType]` for every status the action can return, so the OpenAPI document is complete.
 - Do not catch exceptions or validate in the controller.
 
+## Sending e-mail or other side effects
+
+Never call an external service from a handler (ADR-0011). Inject `Outbox`, enqueue, and save once:
+
+```csharp
+outbox.Enqueue(new EmailMessage(customer.Email, "Welcome", body));
+await db.SaveChangesAsync(cancellationToken);   // the e-mail is recorded if and only if the change commits
+```
+
+The dispatcher delivers it in the background, at least once, for the tenant that enqueued it (ADR-0019).
+For a new kind of side effect, add a message record and an `IOutboxMessageHandler<T>` (idempotent: use
+`context.MessageId` to recognise repeats) and register it with
+`services.AddOutboxMessage<TMessage, THandler>("stable-name")`. Test it like
+[`OutboxProcessorTests`](../tests/Boilerplate.IntegrationTests/Messaging/OutboxProcessorTests.cs).
+
 ## 6. Integration tests
 
 `tests/Boilerplate.IntegrationTests/CustomersTests.cs`, like [`ProjectsTests.cs`](../tests/Boilerplate.IntegrationTests/ProjectsTests.cs).

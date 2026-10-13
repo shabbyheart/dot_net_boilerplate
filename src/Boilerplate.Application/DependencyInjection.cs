@@ -1,3 +1,5 @@
+using Boilerplate.Application.Common.Email;
+using Boilerplate.Application.Common.Messaging;
 using Boilerplate.Application.Common.Security;
 using Boilerplate.Application.Common.Tenancy;
 using Boilerplate.Application.Features.Projects;
@@ -14,6 +16,9 @@ public static class DependencyInjection
     {
         services.AddScoped<PermissionChecker>();
         services.AddScoped<TenantOverride>();
+
+        services.AddOutbox();
+        services.AddOutboxMessage<EmailMessage, SendEmailHandler>(EmailMessage.OutboxType);
 
         services.AddProjectsFeature();
         services.AddRolesFeature();
