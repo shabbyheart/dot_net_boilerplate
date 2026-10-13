@@ -3,8 +3,10 @@
 A reusable ASP.NET Core backend foundation: four projects (Domain, Application, Infrastructure, Api)
 with vertical feature slices, enforced dependency rules, and tests from the first commit.
 
-Status: **M10, hardening** (all planned foundation milestones done; M8 local identity is optional). The API has
-OpenTelemetry tracing and metrics, rate limiting, security headers, CORS and proxy support. It also has
+Status: **all planned milestones done (M0 to M10).** The API accepts tokens from an external OpenID Connect provider
+and can optionally issue its own through local accounts (registration, e-mail confirmation, sign-in with lockout,
+rotating refresh tokens, password reset). It has OpenTelemetry tracing and metrics, rate limiting, security headers,
+CORS and proxy support. It also has
 structured logging, a ProblemDetails error contract, liveness
 and readiness probes, and (in Development) an OpenAPI document. Every endpoint requires a valid JWT bearer token
 unless it is explicitly anonymous, and endpoints can require permissions granted through tenant-scoped roles,
@@ -66,6 +68,26 @@ In a container: `docker compose -f deploy/compose.yaml run --rm api bootstrap --
 In other environments, configure the issuer through `Authentication:Schemes:Bearer`: `Authority` and
 `ValidAudiences` for an OpenID Connect provider ([ADR-0016](docs/adr/0016-authentication.md)).
 
+### Local accounts (optional)
+
+Without an external provider, the API can manage users itself ([ADR-0025](docs/adr/0025-local-accounts.md)):
+
+```bash
+# Enable accounts; the signing key is a secret (32+ random bytes, base64)
+dotnet user-secrets set "Accounts:Tokens:SigningKey" "$(openssl rand -base64 32)" --project src/Boilerplate.Api
+# Non-secret settings (or put them in appsettings): issuer and audience of the tokens, and the client pages
+# that confirmation and reset e-mails link to
+Accounts__Enabled=true \
+Accounts__Tokens__Issuer=http://localhost:5080 Accounts__Tokens__Audience=boilerplate-api \
+Accounts__EmailConfirmationUrl=http://localhost:3000/confirm-email \
+Accounts__PasswordResetUrl=http://localhost:3000/reset-password \
+dotnet run --project src/Boilerplate.Api
+```
+
+Register (`POST /api/v1/account/register`), confirm with the token from the e-mail in Mailpit, sign in without a
+tenant and read your user id from `GET /api/v1/me`. Use that id with `bootstrap --admin-user`, then sign in again with
+`tenantId` to act for the tenant.
+
 Add a migration after changing the model:
 
 ```bash
@@ -106,6 +128,10 @@ See [ADR-0018](docs/adr/0018-containers-and-ci.md).
 | `POST /api/v1/roles`, `PUT/DELETE /api/v1/roles/{id}` | All | `roles.manage` | Create, replace, delete; only permissions you hold (403 otherwise) |
 | `GET /api/v1/roles/{id}/assignments` | All | `roles.read` | Users (token subjects) who hold the role |
 | `PUT/DELETE /api/v1/roles/{id}/assignments/{userId}` | All | `roles.manage` | Assign (idempotent) or unassign; the last administrator stays (409) |
+| `POST /api/v1/account/register`, `confirm-email` | Accounts enabled | Anonymous | Create an account (always 202); confirm the address with the e-mailed token |
+| `POST /api/v1/account/login` | Accounts enabled | Anonymous | Access and refresh tokens; optional `tenantId` (the user must hold a role there) |
+| `POST /api/v1/account/refresh`, `logout` | Accounts enabled | Anonymous | Rotate the refresh token (single use); end the session |
+| `POST /api/v1/account/forgot-password`, `reset-password` | Accounts enabled | Anonymous | E-mail a reset link (always 202); set a new password and sign out everywhere |
 | `/health/live` | All | Anonymous | Liveness: the process can serve requests (no dependency checks) |
 | `/health/ready` | All | Anonymous | Readiness: the database is reachable and every migration is applied |
 | `/openapi/v1.json` | Development | Anonymous | OpenAPI document |
@@ -132,7 +158,11 @@ CI scans the full git history with gitleaks.
 | `Kestrel:Limits:MaxRequestBodySize` | No (default: 1 MB) | Configuration (ADR-0024) |
 | `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_SERVICE_NAME`, ... | No (export off by default) | Standard OpenTelemetry variables ([ADR-0023](docs/adr/0023-tracing-and-metrics.md)) |
 | `Authentication:Schemes:Bearer:ValidAudiences` | Yes; startup fails without it | Configuration or environment variable |
-| `Authentication:Schemes:Bearer:Authority`, or `ValidIssuer` with `SigningKeys` | Yes; startup fails without one | Configuration; signing keys only in user secrets (development) |
+| `Authentication:Schemes:Bearer:Authority`, or `ValidIssuer` with `SigningKeys` | Yes, unless local accounts are enabled | Configuration; signing keys only in user secrets (development) |
+| `Accounts:Enabled`, `EmailConfirmationUrl`, `PasswordResetUrl` | No (default: off); both URLs when on | Configuration: client pages the e-mailed links point to ([ADR-0025](docs/adr/0025-local-accounts.md)) |
+| `Accounts:Tokens:Issuer`, `Audience`, `SigningKey` | When accounts are enabled | Configuration; `SigningKey` (base64, at least 32 random bytes) is a secret: user secrets or environment variable |
+| `Accounts:Tokens:PreviousSigningKeys`, `Lifetime`; `Accounts:RefreshTokenLifetime`, ... | No (15 min access, 14 days refresh) | Configuration (ADR-0025) |
+| `RateLimiting:AccountsPermitLimit`, `RateLimiting:AccountsWindow` | No (default: 10 per minute per IP) | Configuration (ADR-0025) |
 
 For `dotnet run`, point `Email:Smtp` at Mailpit (`docker compose -f deploy/compose.yaml up -d mailpit`): host
 `localhost`, port `1025`, security `None`.

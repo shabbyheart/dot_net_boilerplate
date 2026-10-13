@@ -2,6 +2,7 @@ using Boilerplate.Application.Common.Email;
 using Boilerplate.Application.Common.Messaging;
 using Boilerplate.Application.Common.Security;
 using Boilerplate.Application.Common.Tenancy;
+using Boilerplate.Application.Features.Accounts;
 using Boilerplate.Application.Features.Projects;
 using Boilerplate.Application.Features.Roles;
 using Boilerplate.Application.Features.Tenants;
@@ -23,6 +24,7 @@ public static class DependencyInjection
         services.AddProjectsFeature();
         services.AddRolesFeature();
         services.AddTenantsFeature();
+        services.AddAccountsFeature();
 
         return services;
     }

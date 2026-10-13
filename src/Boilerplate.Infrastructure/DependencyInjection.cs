@@ -1,9 +1,12 @@
 using Boilerplate.Application.Common.Email;
 using Boilerplate.Application.Common.Persistence;
+using Boilerplate.Application.Features.Accounts;
+using Boilerplate.Infrastructure.Accounts;
 using Boilerplate.Infrastructure.Email;
 using Boilerplate.Infrastructure.Messaging;
 using Boilerplate.Infrastructure.Persistence;
 using Boilerplate.Infrastructure.Persistence.Interceptors;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
@@ -72,6 +75,8 @@ public static class DependencyInjection
             .ValidateOnStart();
         services.AddScoped<IEmailSender, MailKitEmailSender>();
 
+        AddAccounts(services);
+
         return services;
     }
 
@@ -88,6 +93,51 @@ public static class DependencyInjection
             .AddInterceptors(
                 services.GetRequiredService<AuditInterceptor>(),
                 services.GetRequiredService<TenantStampingInterceptor>());
+    }
+
+    /// <summary>
+    /// Local accounts (ADR-0025). Always registered so the model and migrations do not depend on configuration;
+    /// the API refuses the account endpoints unless <c>Accounts:Enabled</c> is set.
+    /// </summary>
+    private static void AddAccounts(IServiceCollection services)
+    {
+        services.AddOptions<AccountSettings>()
+            .BindConfiguration(AccountSettings.SectionName)
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        // Application code takes the settings object itself; it does not depend on the options packages.
+        services.AddSingleton(provider => provider.GetRequiredService<IOptions<AccountSettings>>().Value);
+
+        services.AddOptions<AccessTokenOptions>()
+            .BindConfiguration(AccessTokenOptions.SectionName)
+            .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<AccessTokenOptions>, AccessTokenOptionsValidation>();
+        services.AddSingleton<IAccessTokenIssuer, JwtAccessTokenIssuer>();
+
+        services.AddIdentityCore<ApplicationUser>(options =>
+        {
+            options.User.RequireUniqueEmail = true;
+
+            // The user name is the e-mail address, so any character an address may contain is allowed.
+            options.User.AllowedUserNameCharacters = string.Empty;
+
+            // Length only (NIST SP 800-63B), matching AccountRules; composition rules add little and annoy users.
+            options.Password.RequiredLength = AccountRules.PasswordMinLength;
+            options.Password.RequiredUniqueChars = 1;
+            options.Password.RequireDigit = false;
+            options.Password.RequireLowercase = false;
+            options.Password.RequireUppercase = false;
+            options.Password.RequireNonAlphanumeric = false;
+
+            options.Lockout.AllowedForNewUsers = true;
+            options.Lockout.MaxFailedAccessAttempts = 5;
+            options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+        });
+
+        // Not AddEntityFrameworkStores: that store saves after every change, and use cases need one commit point (ADR-0011).
+        services.AddScoped<IUserStore<ApplicationUser>, UnitOfWorkUserStore>();
+        services.AddScoped<IUserAccounts, IdentityUserAccounts>();
     }
 
     /// <summary>Provider and naming conventions (ADR-0009, ADR-0011), shared with design-time tooling.</summary>

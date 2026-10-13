@@ -1,4 +1,5 @@
 using Boilerplate.Application.Common.Messaging;
+using Boilerplate.Domain.Accounts;
 using Boilerplate.Domain.Authorization;
 using Boilerplate.Domain.Projects;
 using Boilerplate.Domain.Tenants;
@@ -21,6 +22,10 @@ public interface IAppDbContext
     DbSet<Project> Projects { get; }
 
     DbSet<OutboxMessage> OutboxMessages { get; }
+
+    DbSet<RefreshToken> RefreshTokens { get; }
+
+    DbSet<OneTimeToken> OneTimeTokens { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

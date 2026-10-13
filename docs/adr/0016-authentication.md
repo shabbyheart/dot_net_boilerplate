@@ -1,6 +1,7 @@
 # ADR-0016: Authentication
 
-- Status: Accepted (token validation). Who issues production tokens is decided before deployment.
+- Status: Accepted (token validation). Who issues production tokens is decided before deployment; ADR-0025 adds
+  the API itself as an optional issuer (local accounts).
 - Date: 2026-10-13
 
 ## Context
