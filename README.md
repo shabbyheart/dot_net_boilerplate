@@ -3,12 +3,13 @@
 A reusable ASP.NET Core backend foundation: four projects (Domain, Application, Infrastructure, Api)
 with vertical feature slices, enforced dependency rules, and tests from the first commit.
 
-Status: **M6, authorization** (M5 and M6 were built before the reference feature, M4). The API has structured
-logging, a ProblemDetails error contract, liveness and readiness probes, and (in Development) an OpenAPI document.
-Every endpoint requires a valid JWT bearer token unless it is explicitly anonymous, and endpoints can require
-permissions granted through tenant-scoped roles, checked on every request so revocation is immediate. It stores data
-in PostgreSQL through EF Core, with tenant isolation driven by the token's `tenant_id` claim. It ships as a non-root
-container image, and a compose stack runs it locally with PostgreSQL. Business features arrive in later milestones.
+Status: **M4, reference feature** (completed after M5 and M6). The API has structured logging, a ProblemDetails
+error contract, liveness and readiness probes, and (in Development) an OpenAPI document. Every endpoint requires a
+valid JWT bearer token unless it is explicitly anonymous, and endpoints can require permissions granted through
+tenant-scoped roles, checked on every request so revocation is immediate. It stores data in PostgreSQL through
+EF Core, with tenant isolation driven by the token's `tenant_id` claim. A small `projects` feature shows how every
+feature is built ([how to add a feature](docs/how-to-add-a-feature.md)). It ships as a non-root container image,
+and a compose stack runs it locally with PostgreSQL.
 
 ## Requirements
 
@@ -84,6 +85,11 @@ See [ADR-0018](docs/adr/0018-containers-and-ci.md).
 | Path | Environment | Access | Purpose |
 |---|---|---|---|
 | `/api/v1/me` | All | Token | The caller's user id (`sub`) and tenant id (`tenant_id`) |
+| `GET /api/v1/projects?page=&pageSize=` | All | `projects.read` | The tenant's projects, ordered by name, paged (ADR-0021) |
+| `GET /api/v1/projects/{id}` | All | `projects.read` | One project |
+| `POST /api/v1/projects` | All | `projects.manage` | Create (201 with `Location`; 409 on a duplicate name) |
+| `PUT /api/v1/projects/{id}` | All | `projects.manage` | Replace name and description |
+| `DELETE /api/v1/projects/{id}` | All | `projects.manage` | Delete (204) |
 | `/health/live` | All | Anonymous | Liveness: the process can serve requests (no dependency checks) |
 | `/health/ready` | All | Anonymous | Readiness: the database is reachable |
 | `/openapi/v1.json` | Development | Anonymous | OpenAPI document |
@@ -114,6 +120,7 @@ docs/       architecture.md, adr/ (architecture decision records)
 ```
 
 - [Architecture and dependency rules](docs/architecture.md)
+- [How to add a feature](docs/how-to-add-a-feature.md)
 - [Architecture decision records](docs/adr/README.md)
 - [Contributor and agent guidelines](AGENTS.md)
 

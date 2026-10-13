@@ -1,3 +1,4 @@
+using Boilerplate.Application.Common.Exceptions;
 using Boilerplate.IntegrationTests.Support;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -159,8 +160,8 @@ public sealed class TenantIsolationTests(IsolationDatabase database) : IClassFix
         // The same value in another tenant is allowed.
         await AddNoteAsync(tenantB, "same title");
 
-        // A duplicate within the same tenant is not.
-        await Should.ThrowAsync<DbUpdateException>(() => AddNoteAsync(tenantA, "same title"));
+        // A duplicate within the same tenant is not; the database violation surfaces as a 409-mapped ConflictException.
+        await Should.ThrowAsync<ConflictException>(() => AddNoteAsync(tenantA, "same title"));
     }
 
     private static IsolationTestDbContext Db(AsyncServiceScope scope) =>

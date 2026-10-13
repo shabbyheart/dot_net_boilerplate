@@ -4,6 +4,8 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore" />
     <!-- ADR-0004: AddApplication() registration. -->
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <!-- ADR-0014: validators live with their use cases. -->
+    <PackageReference Include="FluentValidation" />
   </ItemGroup>
 
   <ItemGroup>

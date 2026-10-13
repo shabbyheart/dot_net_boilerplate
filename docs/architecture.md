@@ -63,7 +63,21 @@ Failures -> typed exceptions -> ProblemDetails (RFC 9457) with traceId
 | 6 | OpenAPI + Scalar (Development only, anonymous) | Documentation endpoints (ADR-0013) |
 | 7 | `/health/live` (anonymous) | Liveness probe; runs no dependency checks |
 | 8 | `/health/ready` (anonymous) | Readiness probe; checks the database (health checks tagged `ready`) with a 5-second timeout, because connection retries would otherwise delay the answer by about a minute |
-| 9 | Controllers (`/api/v1/...`) | Feature endpoints (ADR-0020) |
+| 9 | Controllers (`/api/v1/...`) | Feature endpoints (ADR-0020); `ValidationFilter` validates action arguments first (ADR-0014) |
+
+## A feature, end to end (projects)
+
+```
+POST /api/v1/projects
+  → [RequirePermission("projects.manage")]      403 without it (ADR-0017)
+  → ValidationFilter + CreateProjectValidator     400 with errors per field (ADR-0014)
+  → ProjectsController.Create                     binds, calls one handler
+  → CreateProjectHandler (Application)            entity rules (DomainException → 400), uniqueness (ConflictException → 409)
+  → IAppDbContext.SaveChangesAsync               tenant stamping, audit, unique violation → 409 (ADR-0010/0011)
+  → 201 Created + ProjectResponse                 hand-written mapping (ADR-0015)
+```
+
+The step-by-step guide is [how-to-add-a-feature.md](how-to-add-a-feature.md).
 
 The service provider validates registrations at startup (`ValidateOnBuild`, `ValidateScopes`), and a failed
 startup is logged and exits with code 1 (ADR-0007). Startup also fails without valid token settings (ADR-0016).

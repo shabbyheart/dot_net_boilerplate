@@ -1,10 +1,13 @@
 using System.Reflection;
+using Boilerplate.Application.Common.Exceptions;
 using Boilerplate.Application.Common.Persistence;
 using Boilerplate.Application.Common.Tenancy;
 using Boilerplate.Domain.Authorization;
 using Boilerplate.Domain.Common;
+using Boilerplate.Domain.Projects;
 using Boilerplate.Domain.Tenants;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace Boilerplate.Infrastructure.Persistence;
 
@@ -40,8 +43,34 @@ public class AppDbContext : DbContext, IAppDbContext
 
     public DbSet<RoleAssignment> RoleAssignments => Set<RoleAssignment>();
 
+    public DbSet<Project> Projects => Set<Project>();
+
     // Read by the tenant query filter. EF Core evaluates it for each query against the current context instance.
     private Guid? CurrentTenantId => _tenantContext.TenantId;
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        try
+        {
+            return base.SaveChanges(acceptAllChangesOnSuccess);
+        }
+        catch (DbUpdateException exception) when (IsUniqueViolation(exception))
+        {
+            throw UniqueConflict(exception);
+        }
+    }
+
+    public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        }
+        catch (DbUpdateException exception) when (IsUniqueViolation(exception))
+        {
+            throw UniqueConflict(exception);
+        }
+    }
 
     /// <remarks>
     /// Derived contexts must add their own entities before calling this method,
@@ -99,4 +128,12 @@ public class AppDbContext : DbContext, IAppDbContext
             entity.HasIndex(row => row.TenantId);
         }
     }
+
+    // Handlers check uniqueness first for a specific message; this catches the race between check and insert.
+    private static bool IsUniqueViolation(DbUpdateException exception) =>
+        exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation };
+
+    // The constraint name is not exposed: it would reveal schema details to clients.
+    private static ConflictException UniqueConflict(DbUpdateException exception) =>
+        new("The change conflicts with existing data: a value that must be unique is already in use.", exception);
 }

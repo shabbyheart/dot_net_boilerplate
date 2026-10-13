@@ -2,6 +2,7 @@
 
 Instructions for anyone changing this repository, human or AI agent. Read this file, then
 [docs/architecture.md](docs/architecture.md) and the accepted ADRs in [docs/adr](docs/adr/README.md).
+To add a feature, follow [docs/how-to-add-a-feature.md](docs/how-to-add-a-feature.md) and copy the projects feature.
 
 ## Commands
 
@@ -76,8 +77,12 @@ The rules in [docs/architecture.md](docs/architecture.md) are enforced by `Boile
 - No static mutable state; no static logging or error helpers. Use `ILogger<T>`.
 - Logging: message templates (`"Created role {RoleId}"`), never interpolated strings. Never log passwords,
   tokens, one-time codes, request bodies or authorization headers.
-- Errors: throw the typed exceptions from `Boilerplate.Application.Common.Exceptions`; `ApiExceptionHandler`
-  maps them to ProblemDetails (ADR-0006). A new exception type needs a mapping and a test in the same change.
+- Errors: throw the typed exceptions from `Boilerplate.Application.Common.Exceptions` (`NotFoundException` 404,
+  `ConflictException` 409) or `DomainException` (400); `ApiExceptionHandler` maps them to ProblemDetails (ADR-0006).
+  A new exception type needs a mapping and a test in the same change.
+- Validation: one FluentValidation validator per request, registered explicitly; the MVC `ValidationFilter` runs it
+  (ADR-0014). Do not add DataAnnotations or validate in controllers.
+- Mapping: hand-written response records with a projection expression (ADR-0015). Lists are paged (ADR-0021).
 - Configuration: bind settings with the options pattern and `ValidateOnStart()`; never read `IConfiguration`
   outside the composition root. Never commit secrets (ADR-0007).
 - Comments explain why, not what.

@@ -27,13 +27,15 @@ the decision, the reasoning and the trade-offs.
 | [0011](0011-persistence-transactions-and-side-effects.md) | Persistence, transactions and side effects | Accepted | M3 |
 | [0012](0012-ids-time-and-soft-delete.md) | IDs, time and soft delete | Accepted | M3 |
 | [0013](0013-openapi-document-and-reference-ui.md) | OpenAPI document and API reference UI | Accepted | M1 |
-| 0014 | Validation | Not yet written | M4 |
-| 0015 | Mapping | Not yet written | M4 |
+| [0014](0014-validation.md) | Validation (FluentValidation through an MVC action filter) | Accepted | M4 |
+| [0015](0015-mapping.md) | Mapping (hand-written projections) | Accepted | M4 |
 | [0016](0016-authentication.md) | Authentication (JWT bearer validation; issuer chosen before deployment) | Accepted | M5 |
 | [0017](0017-authorization-and-revocation.md) | Authorization and revocation (permissions through roles, no cache) | Accepted | M6 |
 | [0018](0018-containers-and-ci.md) | Containers and CI | Accepted (CD open until A14) | M2 |
 | 0019 | Outbox and background processing | Not yet written | M9 |
 | [0020](0020-api-style-and-versioning.md) | API style (controllers) and versioning (`/api/v1`) | Accepted | M5 |
+| [0021](0021-pagination.md) | Pagination of list endpoints | Accepted | M4 |
+| 0022 | Tenant and first-administrator bootstrap (one-off CLI command; decided, not yet written) | Not yet written | M7 |
 
 ## Template
 

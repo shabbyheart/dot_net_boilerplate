@@ -11,6 +11,8 @@ namespace Boilerplate.Infrastructure.Persistence.Interceptors;
 /// </summary>
 internal sealed class AuditInterceptor(TimeProvider timeProvider, ICurrentUser currentUser) : SaveChangesInterceptor
 {
+    private const long TicksPerMicrosecond = TimeSpan.TicksPerMillisecond / 1000;
+
     public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
     {
         Stamp(eventData.Context);
@@ -33,7 +35,10 @@ internal sealed class AuditInterceptor(TimeProvider timeProvider, ICurrentUser c
             return;
         }
 
+        // PostgreSQL stores microseconds; .NET has 100 ns ticks. Round down so the entity in memory (returned right
+        // after a save) equals what a later read returns.
         var now = timeProvider.GetUtcNow();
+        now = now.AddTicks(-(now.Ticks % TicksPerMicrosecond));
         var userId = currentUser.UserId;
 
         foreach (var entry in context.ChangeTracker.Entries<IAuditable>())

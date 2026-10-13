@@ -26,6 +26,11 @@
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
   </ItemGroup>
 
+  <ItemGroup Label="Validation">
+    <!-- ADR-0014 -->
+    <PackageVersion Include="FluentValidation" Version="12.2.0" />
+  </ItemGroup>
+
   <ItemGroup Label="Dependency injection">
     <!-- ADR-0004: AddApplication() in Application (abstractions only, allowlisted by ADR-0001). -->
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.12" />

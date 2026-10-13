@@ -2,6 +2,7 @@ using System.Globalization;
 using Boilerplate.Api.Authentication;
 using Boilerplate.Api.ErrorHandling;
 using Boilerplate.Api.Tenancy;
+using Boilerplate.Api.Validation;
 using Boilerplate.Application;
 using Boilerplate.Application.Common.Tenancy;
 using Boilerplate.Infrastructure;
@@ -49,7 +50,12 @@ try
     builder.Services.AddExceptionHandler<ApiExceptionHandler>();
     builder.Services.AddHealthChecks();
     builder.Services.AddOpenApi();
-    builder.Services.AddControllers();
+    // FluentValidation is the single source of request rules (ADR-0014): no implicit [Required] for non-nullable strings.
+    builder.Services.AddControllers(options =>
+    {
+        options.Filters.Add<ValidationFilter>();
+        options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true;
+    });
 
     // Who is calling (ADR-0016) and for which tenant (ADR-0010); both are required by the database context.
     builder.Services.AddApiAuthentication();
