@@ -105,6 +105,15 @@ The rules in [docs/architecture.md](docs/architecture.md) are enforced by `Boile
 - Use `ICurrentUser` for the caller and `ITenantContext` for the tenant. Never read claims or `HttpContext` in Application code.
 - Never weaken token validation (issuer, audience, lifetime, signature) or add custom JWT parsing.
 
+## Authorization (ADR-0017)
+
+- Protect an endpoint that needs more than "any signed-in user" with `[RequirePermission("area.action")]`.
+- Permission names are lowercase `area.action` (`PermissionName`). Add the constants with the feature that needs
+  them, in a `<Area>Permissions` static class in Application, never ahead of time.
+- Permissions are checked against the database on every request (no cache). Do not add caching without a
+  superseding ADR that states the revocation guarantee.
+- Authorization data is tenant-owned: roles and assignments never apply across tenants.
+
 ## Tenancy (ADR-0010)
 
 - Data that belongs to a customer implements `ITenantOwned`. The query filter, foreign key, index and
@@ -124,6 +133,8 @@ The rules in [docs/architecture.md](docs/architecture.md) are enforced by `Boile
   `TestContext.Current.CancellationToken` to async calls.
 - Authenticated requests use `factory.CreateAuthenticatedClient(TestTokens.Create(...))`. Every new endpoint gets a
   test that it rejects anonymous callers (401) in addition to its behaviour tests.
+- Every permission-protected endpoint gets tests for: missing permission (403), granted permission (allowed), and
+  the permission granted only in another tenant (403). `AuthorizationData` creates roles and assignments.
 - Persistence tests get real PostgreSQL from the assembly-wide `PostgresFixture` and build services through
   `PersistenceServices` (the real `AddInfrastructure`). Isolate data by creating new tenants per test instead of resetting the database.
 - Tests must not depend on execution order, wall-clock time or external networks (Testcontainers excepted).

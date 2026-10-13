@@ -1,6 +1,7 @@
 using System.Reflection;
 using Boilerplate.Application.Common.Persistence;
 using Boilerplate.Application.Common.Tenancy;
+using Boilerplate.Domain.Authorization;
 using Boilerplate.Domain.Common;
 using Boilerplate.Domain.Tenants;
 using Microsoft.EntityFrameworkCore;
@@ -34,6 +35,10 @@ public class AppDbContext : DbContext, IAppDbContext
     }
 
     public DbSet<Tenant> Tenants => Set<Tenant>();
+
+    public DbSet<Role> Roles => Set<Role>();
+
+    public DbSet<RoleAssignment> RoleAssignments => Set<RoleAssignment>();
 
     // Read by the tenant query filter. EF Core evaluates it for each query against the current context instance.
     private Guid? CurrentTenantId => _tenantContext.TenantId;
@@ -85,7 +90,13 @@ public class AppDbContext : DbContext, IAppDbContext
             .HasForeignKey(row => row.TenantId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // Every query on tenant-owned data filters by tenant_id.
-        entity.HasIndex(row => row.TenantId);
+        // Every query on tenant-owned data filters by tenant_id. An index that already starts with tenant_id
+        // (such as a per-tenant unique index) serves those queries, so only add one when none exists.
+        var hasTenantLeadingIndex = entity.Metadata.GetIndexes()
+            .Any(index => index.Properties[0].Name == nameof(ITenantOwned.TenantId));
+        if (!hasTenantLeadingIndex)
+        {
+            entity.HasIndex(row => row.TenantId);
+        }
     }
 }
