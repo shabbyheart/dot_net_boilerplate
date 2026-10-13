@@ -28,6 +28,7 @@ dotnet test -c Release
 | `src/Boilerplate.Infrastructure` | EF Core, migrations, implementations of Application ports. |
 | `src/Boilerplate.Api` | Composition root, endpoints, HTTP middleware, OpenAPI. |
 | `tests/Boilerplate.UnitTests` | Domain and Application logic. |
+| `tests/Boilerplate.IntegrationTests` | The real API in memory (`WebApplicationFactory`); real database from M3. |
 | `tests/Boilerplate.ArchitectureTests` | Dependency and package rules. |
 | `docs/` | Architecture overview and ADRs. |
 
@@ -72,6 +73,10 @@ The rules in [docs/architecture.md](docs/architecture.md) are enforced by `Boile
 - No static mutable state; no static logging or error helpers. Use `ILogger<T>`.
 - Logging: message templates (`"Created role {RoleId}"`), never interpolated strings. Never log passwords,
   tokens, one-time codes, request bodies or authorization headers.
+- Errors: throw the typed exceptions from `Boilerplate.Application.Common.Exceptions`; `ApiExceptionHandler`
+  maps them to ProblemDetails (ADR-0006). A new exception type needs a mapping and a test in the same change.
+- Configuration: bind settings with the options pattern and `ValidateOnStart()`; never read `IConfiguration`
+  outside the composition root. Never commit secrets (ADR-0007).
 - Comments explain why, not what.
 
 ## Persistence (applies from M3)
@@ -88,6 +93,8 @@ The rules in [docs/architecture.md](docs/architecture.md) are enforced by `Boile
   and authorization denial.
 - Validators and domain methods with logic: unit tests.
 - Security-relevant fixes (authentication, authorization, tenancy): a regression test that fails before the fix.
+- Integration tests use `ApiFactory` (`tests/Boilerplate.IntegrationTests/Support`) and pass
+  `TestContext.Current.CancellationToken` to async calls.
 - Tests must not depend on execution order, wall-clock time or external networks (Testcontainers excepted).
 - Test method names: `Method_or_behaviour_condition_expected_result` with underscores (allowed in `tests/` only).
 

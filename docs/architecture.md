@@ -50,3 +50,16 @@ HTTP -> exception handler -> authentication -> authorization -> endpoint
      -> response
 Failures -> typed exceptions -> ProblemDetails (RFC 9457) with traceId
 ```
+
+### Current pipeline (M1), in `src/Boilerplate.Api/Program.cs`
+
+| Order | Component | Why here |
+|---|---|---|
+| 1 | `UseSerilogRequestLogging` | Outermost, so the request summary records the final status code, including handled errors |
+| 2 | `UseExceptionHandler` + `ApiExceptionHandler` | Catches exceptions from everything after it and writes ProblemDetails (ADR-0006) |
+| 3 | `UseStatusCodePages` | Gives body-less error responses (for example unknown routes) a ProblemDetails body |
+| 4 | OpenAPI + Scalar (Development only) | Documentation endpoints (ADR-0013) |
+| 5 | `/health/live` | Liveness probe; runs no dependency checks |
+
+The service provider validates registrations at startup (`ValidateOnBuild`, `ValidateScopes`), and a failed
+startup is logged and exits with code 1 (ADR-0007).
