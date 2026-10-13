@@ -17,6 +17,16 @@
     <PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" />
   </ItemGroup>
 
+  <ItemGroup Label="Observability">
+    <!-- ADR-0023 -->
+    <PackageVersion Include="Npgsql.OpenTelemetry" Version="10.0.3" />
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.19.1" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.19.1" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.19.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.19.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.19.0" />
+  </ItemGroup>
+
   <ItemGroup Label="Persistence">
     <!-- ADR-0005 (Application may reference EF Core), ADR-0009/0011 (Npgsql, naming, health check, tools). -->
     <PackageVersion Include="EFCore.NamingConventions" Version="10.0.1" />
@@ -50,6 +60,7 @@
   <ItemGroup Label="Testing">
     <!-- ADR-0003/0012: real PostgreSQL in tests and a controllable clock. -->
     <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.10.0" />
+    <PackageVersion Include="OpenTelemetry.Exporter.InMemory" Version="1.19.1" />
     <PackageVersion Include="Testcontainers.PostgreSql" Version="4.16.0" />
     <!-- ADR-0003: WebApplicationFactory for integration tests. -->
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.12" />

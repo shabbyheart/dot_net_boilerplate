@@ -2,6 +2,8 @@ using System.Globalization;
 using Boilerplate.Api.Authentication;
 using Boilerplate.Api.Commands;
 using Boilerplate.Api.ErrorHandling;
+using Boilerplate.Api.Hardening;
+using Boilerplate.Api.Registration;
 using Boilerplate.Api.Tenancy;
 using Boilerplate.Api.Validation;
 using Boilerplate.Application;
@@ -10,6 +12,7 @@ using Boilerplate.Infrastructure;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Scalar.AspNetCore;
 using Serilog;
+using Serilog.Events;
 using Serilog.Formatting.Compact;
 
 // Reports failures that happen before the host's logging is configured (ADR-0008).
@@ -64,6 +67,10 @@ try
     builder.Services.AddApplication();
     builder.Services.AddInfrastructure();
 
+    // Operational hardening: tracing and metrics (ADR-0023), proxies, headers, CORS, rate limits (ADR-0024).
+    builder.Services.AddApiObservability(builder.Configuration);
+    builder.Services.AddApiHardening(builder.Configuration);
+
     var app = builder.Build();
 
     // One-off commands use the same configuration and services but never start the web server (ADR-0022).
@@ -72,14 +79,29 @@ try
         return await BootstrapCommand.RunAsync(app.Services, args, CancellationToken.None);
     }
 
-    // Outermost, so the request summary records the final status code of handled errors.
-    app.UseSerilogRequestLogging();
+    // First: everything after it must see the real client IP and scheme (only from trusted proxies).
+    app.UseForwardedHeaders();
+
+    // Outermost logging, so the request summary records the final status code of handled errors.
+    app.UseSerilogRequestLogging(options => options.GetLevel = RequestLogLevel);
+    app.UseSecurityHeaders();
     app.UseExceptionHandler();
 
-    // Before authentication, so 401 and 403 challenges get a ProblemDetails body.
+    if (!app.Environment.IsDevelopment())
+    {
+        app.UseHsts();
+    }
+
+    // Before authentication, so 401, 403 and 429 responses get a ProblemDetails body.
     app.UseStatusCodePages();
 
+    // Before authentication, so browser preflight requests are answered without a token.
+    app.UseCors();
+
     app.UseAuthentication();
+
+    // After authentication (callers are limited per user) and before authorization (rejected work is not done).
+    app.UseRateLimiter();
     app.UseAuthorization();
 
     if (app.Environment.IsDevelopment())
@@ -92,7 +114,7 @@ try
     app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false })
         .AllowAnonymous();
 
-    // Readiness: the dependencies needed to serve traffic (the database) are reachable.
+    // Readiness: the database is reachable and has every migration this code expects (ADR-0024).
     app.MapHealthChecks("/health/ready", new HealthCheckOptions
     {
         Predicate = check => check.Tags.Contains(Boilerplate.Infrastructure.DependencyInjection.ReadyHealthCheckTag),
@@ -112,4 +134,18 @@ catch (Exception exception) when (exception is not HostAbortedException)
 finally
 {
     await Log.CloseAndFlushAsync();
+}
+
+// Probes run every few seconds; their request summaries would drown real traffic (ADR-0024).
+// Otherwise the Serilog default: Error for exceptions and 5xx, Information for the rest.
+static LogEventLevel RequestLogLevel(HttpContext context, double elapsedMilliseconds, Exception? exception)
+{
+    if (context.Request.Path.StartsWithSegments("/health", StringComparison.OrdinalIgnoreCase))
+    {
+        return LogEventLevel.Debug;
+    }
+
+    return exception is not null || context.Response.StatusCode >= StatusCodes.Status500InternalServerError
+        ? LogEventLevel.Error
+        : LogEventLevel.Information;
 }

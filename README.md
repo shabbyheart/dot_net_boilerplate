@@ -3,7 +3,9 @@
 A reusable ASP.NET Core backend foundation: four projects (Domain, Application, Infrastructure, Api)
 with vertical feature slices, enforced dependency rules, and tests from the first commit.
 
-Status: **M9, outbox and e-mail.** The API has structured logging, a ProblemDetails error contract, liveness
+Status: **M10, hardening** (all planned foundation milestones done; M8 local identity is optional). The API has
+OpenTelemetry tracing and metrics, rate limiting, security headers, CORS and proxy support. It also has
+structured logging, a ProblemDetails error contract, liveness
 and readiness probes, and (in Development) an OpenAPI document. Every endpoint requires a valid JWT bearer token
 unless it is explicitly anonymous, and endpoints can require permissions granted through tenant-scoped roles,
 checked on every request so revocation is immediate. Roles are administered over HTTP with an escalation guard,
@@ -105,7 +107,7 @@ See [ADR-0018](docs/adr/0018-containers-and-ci.md).
 | `GET /api/v1/roles/{id}/assignments` | All | `roles.read` | Users (token subjects) who hold the role |
 | `PUT/DELETE /api/v1/roles/{id}/assignments/{userId}` | All | `roles.manage` | Assign (idempotent) or unassign; the last administrator stays (409) |
 | `/health/live` | All | Anonymous | Liveness: the process can serve requests (no dependency checks) |
-| `/health/ready` | All | Anonymous | Readiness: the database is reachable |
+| `/health/ready` | All | Anonymous | Readiness: the database is reachable and every migration is applied |
 | `/openapi/v1.json` | Development | Anonymous | OpenAPI document |
 | `/scalar` | Development | Anonymous | Interactive API reference |
 
@@ -124,11 +126,16 @@ CI scans the full git history with gitleaks.
 | `Email:Smtp:Host`, `Email:Smtp:FromAddress` | Yes; startup fails without them | Configuration. Also `Port` (587), `Security` (`StartTls`; `None` only for Mailpit), `FromName` |
 | `Email:Smtp:Username`, `Email:Smtp:Password` | If the server requires them | User secrets or environment variables |
 | `Outbox:Enabled`, `PollingInterval`, `BatchSize`, `Lease`, `MaxAttempts` | No (defaults: on, 5 s, 20, 5 min, 8) | Configuration ([ADR-0019](docs/adr/0019-outbox-and-email.md)) |
+| `Cors:AllowedOrigins` | No (default: none) | Browser origins allowed to call the API ([ADR-0024](docs/adr/0024-http-hardening.md)) |
+| `RateLimiting:PermitLimit`, `RateLimiting:Window` | No (default: 100 per 10 s per caller) | Configuration (ADR-0024) |
+| `ForwardedHeaders:KnownProxies`, `ForwardedHeaders:KnownNetworks` | Behind a proxy, yes | IPs / CIDR ranges of the TLS-terminating proxy. Without them the API sees the proxy's IP and `http` (ADR-0024) |
+| `Kestrel:Limits:MaxRequestBodySize` | No (default: 1 MB) | Configuration (ADR-0024) |
+| `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_SERVICE_NAME`, ... | No (export off by default) | Standard OpenTelemetry variables ([ADR-0023](docs/adr/0023-tracing-and-metrics.md)) |
+| `Authentication:Schemes:Bearer:ValidAudiences` | Yes; startup fails without it | Configuration or environment variable |
+| `Authentication:Schemes:Bearer:Authority`, or `ValidIssuer` with `SigningKeys` | Yes; startup fails without one | Configuration; signing keys only in user secrets (development) |
 
 For `dotnet run`, point `Email:Smtp` at Mailpit (`docker compose -f deploy/compose.yaml up -d mailpit`): host
 `localhost`, port `1025`, security `None`.
-| `Authentication:Schemes:Bearer:ValidAudiences` | Yes; startup fails without it | Configuration or environment variable |
-| `Authentication:Schemes:Bearer:Authority`, or `ValidIssuer` with `SigningKeys` | Yes; startup fails without one | Configuration; signing keys only in user secrets (development) |
 
 ## Repository layout
 

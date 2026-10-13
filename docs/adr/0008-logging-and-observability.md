@@ -1,6 +1,6 @@
 # ADR-0008: Logging and observability
 
-- Status: Accepted (logging). Tracing and metrics will be decided in a superseding ADR before M10.
+- Status: Accepted (logging). The deferred tracing and metrics part is superseded by ADR-0023.
 - Date: 2026-10-13
 
 ## Context

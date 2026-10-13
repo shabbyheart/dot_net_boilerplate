@@ -5,9 +5,11 @@ using Boilerplate.Infrastructure.Messaging;
 using Boilerplate.Infrastructure.Persistence;
 using Boilerplate.Infrastructure.Persistence.Interceptors;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Boilerplate.Infrastructure;
@@ -22,6 +24,7 @@ public static class DependencyInjection
     public const string ReadyHealthCheckTag = "ready";
 
     private const string DatabaseHealthCheckName = "database";
+    private const string DatabaseMigrationsHealthCheckName = "database-migrations";
 
     private static readonly TimeSpan DatabaseHealthCheckTimeout = TimeSpan.FromSeconds(5);
 
@@ -41,13 +44,18 @@ public static class DependencyInjection
         services.AddScoped<IAppDbContext>(provider => provider.GetRequiredService<AppDbContext>());
 
         services.AddHealthChecks()
-            .AddDbContextCheck<AppDbContext>(DatabaseHealthCheckName, tags: [ReadyHealthCheckTag]);
+            .AddDbContextCheck<AppDbContext>(DatabaseHealthCheckName, tags: [ReadyHealthCheckTag])
+            .AddCheck<PendingMigrationsHealthCheck>(DatabaseMigrationsHealthCheckName, tags: [ReadyHealthCheckTag]);
 
         // Connection retries (EnableRetryOnFailure) would keep a failing check running for about a minute;
-        // probes need a prompt answer, so the check gives up and reports Unhealthy after a fixed time.
+        // probes need a prompt answer, so the database checks give up and report Unhealthy after a fixed time.
         services.Configure<HealthCheckServiceOptions>(options =>
-            options.Registrations.Single(registration => registration.Name == DatabaseHealthCheckName).Timeout =
-                DatabaseHealthCheckTimeout);
+        {
+            foreach (var registration in options.Registrations.Where(r => r.Name is DatabaseHealthCheckName or DatabaseMigrationsHealthCheckName))
+            {
+                registration.Timeout = DatabaseHealthCheckTimeout;
+            }
+        });
 
         // Outbox dispatch (ADR-0019). The processor is a singleton; it opens a scope per message.
         services.AddOptions<OutboxOptions>()
@@ -83,8 +91,17 @@ public static class DependencyInjection
     }
 
     /// <summary>Provider and naming conventions (ADR-0009, ADR-0011), shared with design-time tooling.</summary>
-    internal static DbContextOptionsBuilder UseAppDatabase(this DbContextOptionsBuilder options, string connectionString) =>
+    internal static DbContextOptionsBuilder UseAppDatabase(this DbContextOptionsBuilder options, string connectionString)
+    {
         options
             .UseNpgsql(connectionString, npgsql => npgsql.EnableRetryOnFailure())
             .UseSnakeCaseNamingConvention();
+
+        // EF Core logs failed commands, queries and saves as errors itself. The code that handles the exception
+        // logs it once (exception handler, outbox dispatcher), and some are expected (409 conflicts) (ADR-0024).
+        return options.ConfigureWarnings(warnings => warnings.Log(
+            (RelationalEventId.CommandError, LogLevel.Debug),
+            (CoreEventId.QueryIterationFailed, LogLevel.Debug),
+            (CoreEventId.SaveChangesFailed, LogLevel.Debug)));
+    }
 }

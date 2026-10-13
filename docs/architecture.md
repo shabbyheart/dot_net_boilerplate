@@ -45,7 +45,8 @@ that no code uses yet. A forbidden reference must fail the build before anyone w
 ## Request flow (target, built up from M1 onwards)
 
 ```
-HTTP -> exception handler -> authentication -> authorization -> endpoint
+HTTP -> forwarded headers -> security headers -> exception handler -> CORS -> authentication -> rate limit
+     -> authorization -> endpoint
      -> validation filter -> handler (Application) -> ports / IAppDbContext -> one commit point
      -> response
 Failures -> typed exceptions -> ProblemDetails (RFC 9457) with traceId
@@ -55,15 +56,23 @@ Failures -> typed exceptions -> ProblemDetails (RFC 9457) with traceId
 
 | Order | Component | Why here |
 |---|---|---|
-| 1 | `UseSerilogRequestLogging` | Outermost, so the request summary records the final status code, including handled errors |
-| 2 | `UseExceptionHandler` + `ApiExceptionHandler` | Catches exceptions from everything after it and writes ProblemDetails (ADR-0006) |
-| 3 | `UseStatusCodePages` | Gives body-less error responses (unknown routes, 401/403 challenges) a ProblemDetails body |
-| 4 | `UseAuthentication` | Validates the JWT bearer token and sets the user (ADR-0016) |
-| 5 | `UseAuthorization` | Applies endpoint policies; the fallback policy requires an authenticated user with `sub` everywhere else, including paths without an endpoint |
-| 6 | OpenAPI + Scalar (Development only, anonymous) | Documentation endpoints (ADR-0013) |
-| 7 | `/health/live` (anonymous) | Liveness probe; runs no dependency checks |
-| 8 | `/health/ready` (anonymous) | Readiness probe; checks the database (health checks tagged `ready`) with a 5-second timeout, because connection retries would otherwise delay the answer by about a minute |
-| 9 | Controllers (`/api/v1/...`) | Feature endpoints (ADR-0020); `ValidationFilter` validates action arguments first (ADR-0014) |
+| 1 | `UseForwardedHeaders` | First, so everything after it sees the real client IP and scheme, taken only from trusted proxies (ADR-0024) |
+| 2 | `UseSerilogRequestLogging` | Outermost logging, so the summary records the final status code; health probes at Debug (ADR-0024) |
+| 3 | `UseSecurityHeaders` | Adds headers just before the response starts, so error responses get them too (ADR-0024) |
+| 4 | `UseExceptionHandler` + `ApiExceptionHandler` | Catches exceptions from everything after it and writes ProblemDetails (ADR-0006) |
+| 5 | `UseHsts` (not in Development) | HSTS on HTTPS requests (ADR-0024) |
+| 6 | `UseStatusCodePages` | Gives body-less error responses (unknown routes, 401/403/429) a ProblemDetails body |
+| 7 | `UseCors` | Before authentication, so browser preflight requests need no token (ADR-0024) |
+| 8 | `UseAuthentication` | Validates the JWT bearer token and sets the user (ADR-0016) |
+| 9 | `UseRateLimiter` | After authentication (budget per user, else per IP), before authorization (ADR-0024) |
+| 10 | `UseAuthorization` | Applies endpoint policies; the fallback policy requires an authenticated user with `sub` everywhere else, including paths without an endpoint |
+| 11 | OpenAPI + Scalar (Development only, anonymous) | Documentation endpoints (ADR-0013) |
+| 12 | `/health/live` (anonymous) | Liveness probe; runs no dependency checks |
+| 13 | `/health/ready` (anonymous) | Readiness probe: database reachable and no pending migrations, each check limited to 5 seconds (ADR-0024) |
+| 14 | Controllers (`/api/v1/...`) | Feature endpoints (ADR-0020); `ValidationFilter` validates action arguments first (ADR-0014) |
+
+OpenTelemetry traces every request except health probes, plus outgoing HTTP calls and PostgreSQL commands (ADR-0023).
+Kestrel rejects request bodies over 1 MB with 413 ProblemDetails.
 
 ## A feature, end to end (projects)
 

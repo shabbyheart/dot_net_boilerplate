@@ -7,6 +7,8 @@
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
     <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <!-- ADR-0023: PostgreSQL command tracing. -->
+    <PackageReference Include="Npgsql.OpenTelemetry" />
     <!-- Design-time support for the dotnet-ef tool (AppDbContextDesignTimeFactory); not shipped. -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
       <PrivateAssets>all</PrivateAssets>

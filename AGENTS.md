@@ -123,6 +123,18 @@ The rules in [docs/architecture.md](docs/architecture.md) are enforced by `Boile
   permission they do not hold. Use `ForbiddenException` (403) for such refusals.
 - Work without an HTTP user (commands, background jobs) sets the tenant with `TenantOverride`, never by faking claims.
 
+## Operations (ADR-0023, ADR-0024)
+
+- Read settings through options or lazily when options are built, never eagerly while registering services:
+  hosts and tests add configuration after registration.
+- Composition code that uses Infrastructure types lives in `Program.cs` or `Boilerplate.Api.Registration`
+  (enforced by `LayerDependencyTests`).
+- Do not exempt endpoints from rate limiting, weaken security headers or trust more proxies without an ADR.
+- New dependencies with OpenTelemetry instrumentation (HTTP clients, databases) are traced through the
+  registrations in `ObservabilityRegistration`; do not add vendor SDKs.
+- A new error type that the server raises (like `BadHttpRequestException`) needs a mapping in `ApiExceptionHandler`
+  and a test; otherwise it becomes a 500.
+
 ## Side effects and e-mail (ADR-0019)
 
 - Handlers never call external services directly. Enqueue a message with `Outbox.Enqueue(...)` and save once; the
