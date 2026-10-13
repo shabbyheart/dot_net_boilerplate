@@ -10,8 +10,8 @@ using Microsoft.Extensions.Options;
 namespace Boilerplate.Infrastructure;
 
 /// <summary>
-/// Registers Infrastructure services (ADR-0004). The host must also register an
-/// <see cref="Application.Common.Tenancy.ITenantContext"/> implementation.
+/// Registers Infrastructure services (ADR-0004). The host must also register implementations of
+/// <see cref="Application.Common.Tenancy.ITenantContext"/> and <see cref="Application.Common.Security.ICurrentUser"/>.
 /// </summary>
 public static class DependencyInjection
 {
@@ -31,7 +31,7 @@ public static class DependencyInjection
 
         services.TryAddSingleton(TimeProvider.System);
 
-        services.AddScoped<AuditTimestampsInterceptor>();
+        services.AddScoped<AuditInterceptor>();
         services.AddScoped<TenantStampingInterceptor>();
 
         services.AddDbContext<AppDbContext>(ConfigureDbContext);
@@ -60,7 +60,7 @@ public static class DependencyInjection
         options
             .UseAppDatabase(databaseOptions.ConnectionString)
             .AddInterceptors(
-                services.GetRequiredService<AuditTimestampsInterceptor>(),
+                services.GetRequiredService<AuditInterceptor>(),
                 services.GetRequiredService<TenantStampingInterceptor>());
     }
 

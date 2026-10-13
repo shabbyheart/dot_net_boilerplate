@@ -86,8 +86,11 @@ jobs:
         run: |
           # A syntactically valid connection string to a database that does not exist:
           # the API must start (liveness) but report not ready.
+          # Authentication settings are required to start; this issuer is never contacted because no token is sent.
           docker run --detach --name api --publish 8080:8080 \
             --env "Database__ConnectionString=Host=127.0.0.1;Port=1;Database=none;Username=none;Password=none;Timeout=3" \
+            --env "Authentication__Schemes__Bearer__Authority=https://issuer.example" \
+            --env "Authentication__Schemes__Bearer__ValidAudiences__0=boilerplate-api" \
             boilerplate-api:ci
           curl --fail --silent --show-error --retry 30 --retry-delay 1 --retry-all-errors http://localhost:8080/health/live
           echo
@@ -96,9 +99,15 @@ jobs:
             echo "Readiness must fail without a database (got ${ready})."
             exit 1
           fi
+          # Not mapped in Production: anonymous callers get 401 like any unknown path, never the document.
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' http://localhost:8080/openapi/v1.json)"
-          if [ "${status}" != "404" ]; then
+          if [ "${status}" = "200" ]; then
             echo "OpenAPI must not be exposed outside Development (got ${status})."
+            exit 1
+          fi
+          me="$(curl --silent --output /dev/null --write-out '%{http_code}' http://localhost:8080/api/v1/me)"
+          if [ "${me}" != "401" ]; then
+            echo "API endpoints must require a token (got ${me})."
             exit 1
           fi
 

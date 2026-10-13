@@ -8,6 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup Label="Api">
+    <!-- ADR-0016 -->
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.12" />
     <!-- ADR-0013 -->
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />
     <PackageVersion Include="Scalar.AspNetCore" Version="2.18.0" />

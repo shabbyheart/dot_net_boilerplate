@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Hosting;
 
 namespace Boilerplate.IntegrationTests;
 
-/// <summary>OpenAPI document and reference UI are Development-only (ADR-0013).</summary>
+/// <summary>OpenAPI document and reference UI are Development-only and anonymous (ADR-0013, ADR-0016).</summary>
 public sealed class OpenApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
 {
     [Fact]
@@ -40,10 +40,14 @@ public sealed class OpenApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         await using var production = factory.WithWebHostBuilder(builder => builder.UseEnvironment("Production"));
-        using var client = production.CreateClient();
 
-        using var response = await client.GetAsync(path, cancellationToken);
+        // Not mapped: anonymous callers are refused like any unknown path, authenticated callers get 404.
+        using var anonymous = production.CreateClient();
+        using var anonymousResponse = await anonymous.GetAsync(path, cancellationToken);
+        anonymousResponse.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
 
-        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        using var authenticated = production.CreateAuthenticatedClient();
+        using var authenticatedResponse = await authenticated.GetAsync(path, cancellationToken);
+        authenticatedResponse.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 }

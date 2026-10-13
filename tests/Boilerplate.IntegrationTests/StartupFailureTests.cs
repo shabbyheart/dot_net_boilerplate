@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Boilerplate.IntegrationTests.Support;
 
 namespace Boilerplate.IntegrationTests;
 
@@ -13,6 +14,11 @@ public sealed class StartupFailureTests
     [Theory]
     [InlineData("Database__ConnectionString", "", "The ConnectionString field is required.")]
     [InlineData("Serilog__MinimumLevel__Default", "NotALevel", "The value NotALevel is not a valid Serilog level.")]
+    [InlineData(
+        "Authentication__Schemes__Bearer__Authority",
+        "",
+        "Authentication:Schemes:Bearer needs either Authority, or ValidIssuer together with SigningKeys.")]
+    [InlineData("Authentication__Schemes__Bearer__ValidAudiences__0", "", "Authentication:Schemes:Bearer:ValidAudiences is required.")]
     public async Task Host_exits_with_code_1_when_configuration_is_invalid(string setting, string value, string expectedReason)
     {
         var cancellationToken = TestContext.Current.CancellationToken;
@@ -30,6 +36,8 @@ public sealed class StartupFailureTests
         startInfo.Environment["ASPNETCORE_ENVIRONMENT"] = "Production";
         startInfo.Environment["ASPNETCORE_URLS"] = "http://127.0.0.1:0";
         startInfo.Environment["Database__ConnectionString"] = ValidConnectionString;
+        startInfo.Environment["Authentication__Schemes__Bearer__Authority"] = "https://issuer.example";
+        startInfo.Environment["Authentication__Schemes__Bearer__ValidAudiences__0"] = TestTokens.Audience;
         startInfo.Environment[setting] = value;
 
         using var process = Process.Start(startInfo)

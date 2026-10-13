@@ -29,11 +29,11 @@ the decision, the reasoning and the trade-offs.
 | [0013](0013-openapi-document-and-reference-ui.md) | OpenAPI document and API reference UI | Accepted | M1 |
 | 0014 | Validation | Not yet written | M4 |
 | 0015 | Mapping | Not yet written | M4 |
-| 0016 | Authentication strategy | Not yet written | M5 |
+| [0016](0016-authentication.md) | Authentication (JWT bearer validation; issuer chosen before deployment) | Accepted | M5 |
 | 0017 | Authorization and revocation semantics | Not yet written | M6 |
 | [0018](0018-containers-and-ci.md) | Containers and CI | Accepted (CD open until A14) | M2 |
 | 0019 | Outbox and background processing | Not yet written | M9 |
-| 0020 | API style and versioning | Not yet written | M4 |
+| [0020](0020-api-style-and-versioning.md) | API style (controllers) and versioning (`/api/v1`) | Accepted | M5 |
 
 ## Template
 

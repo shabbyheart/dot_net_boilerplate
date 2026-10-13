@@ -28,6 +28,9 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       Database__ConnectionString: "Host=db;Database=boilerplate;Username=boilerplate;Password=${POSTGRES_PASSWORD}"
+      # Token issuer (ADR-0016). The placeholder lets the stack start; set AUTH_AUTHORITY to accept real tokens.
+      Authentication__Schemes__Bearer__Authority: ${AUTH_AUTHORITY:-https://issuer.invalid}
+      Authentication__Schemes__Bearer__ValidAudiences__0: ${AUTH_AUDIENCE:-boilerplate-api}
     depends_on:
       db:
         condition: service_healthy

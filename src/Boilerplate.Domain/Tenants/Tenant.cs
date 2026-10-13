@@ -16,7 +16,11 @@ public sealed class Tenant : Entity, IAuditable
 
     public DateTimeOffset CreatedAt { get; private set; }
 
+    public string? CreatedBy { get; private set; }
+
     public DateTimeOffset UpdatedAt { get; private set; }
+
+    public string? UpdatedBy { get; private set; }
 
     public static Tenant Create(string name) => new(NormalizeName(name));
 

@@ -1,3 +1,4 @@
+using Boilerplate.Application.Common.Security;
 using Boilerplate.Application.Common.Tenancy;
 using Boilerplate.Infrastructure;
 using Microsoft.Extensions.Configuration;
@@ -31,17 +32,20 @@ internal static class PersistenceServices
 
         services.AddScoped<TestTenantContext>();
         services.AddScoped<ITenantContext>(provider => provider.GetRequiredService<TestTenantContext>());
+        services.AddScoped<TestCurrentUser>();
+        services.AddScoped<ICurrentUser>(provider => provider.GetRequiredService<TestCurrentUser>());
         services.AddInfrastructure();
         configure?.Invoke(services);
 
         return services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
     }
 
-    /// <summary>A scope acting for <paramref name="tenantId"/> (or for no tenant).</summary>
-    public static AsyncServiceScope CreateScope(this IServiceProvider services, Guid? tenantId)
+    /// <summary>A scope acting for <paramref name="tenantId"/> and <paramref name="userId"/> (either may be none).</summary>
+    public static AsyncServiceScope CreateScope(this IServiceProvider services, Guid? tenantId, string? userId = null)
     {
         var scope = services.CreateAsyncScope();
         scope.ServiceProvider.GetRequiredService<TestTenantContext>().TenantId = tenantId;
+        scope.ServiceProvider.GetRequiredService<TestCurrentUser>().UserId = userId;
         return scope;
     }
 }
