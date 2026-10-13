@@ -1,0 +1,15 @@
+<Project>
+  <!--
+    Central Package Management: every package version lives here, never in a .csproj.
+    Adding a package requires a reason in an ADR (see AGENTS.md, "Packages").
+  -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <ItemGroup Label="Testing">
+    <PackageVersion Include="NetArchTest.Rules" Version="1.3.2" />
+    <PackageVersion Include="Shouldly" Version="4.3.0" />
+    <PackageVersion Include="xunit.v3" Version="4.0.2" />
+  </ItemGroup>
+</Project>

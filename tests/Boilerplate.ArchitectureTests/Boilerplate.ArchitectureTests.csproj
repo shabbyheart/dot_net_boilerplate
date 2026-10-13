@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Enforces the dependency rules in docs/architecture.md. References every source project so it can inspect them. -->
+  <ItemGroup>
+    <PackageReference Include="NetArchTest.Rules" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Boilerplate.Domain\Boilerplate.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Boilerplate.Application\Boilerplate.Application.csproj" />
+    <ProjectReference Include="..\..\src\Boilerplate.Infrastructure\Boilerplate.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Boilerplate.Api\Boilerplate.Api.csproj" />
+  </ItemGroup>
+</Project>

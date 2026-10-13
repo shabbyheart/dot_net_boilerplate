@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Unit tests for Domain and Application logic (validators, domain methods, pure services). -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Boilerplate.Domain\Boilerplate.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Boilerplate.Application\Boilerplate.Application.csproj" />
+  </ItemGroup>
+</Project>

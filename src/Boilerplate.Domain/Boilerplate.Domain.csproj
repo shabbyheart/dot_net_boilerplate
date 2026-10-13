@@ -1,0 +1,3 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Domain references no project and no package (docs/adr/0001-architecture-style.md). -->
+</Project>

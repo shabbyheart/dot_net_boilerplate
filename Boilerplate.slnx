@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Boilerplate.Api/Boilerplate.Api.csproj" />
+    <Project Path="src/Boilerplate.Application/Boilerplate.Application.csproj" />
+    <Project Path="src/Boilerplate.Domain/Boilerplate.Domain.csproj" />
+    <Project Path="src/Boilerplate.Infrastructure/Boilerplate.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Boilerplate.ArchitectureTests/Boilerplate.ArchitectureTests.csproj" />
+    <Project Path="tests/Boilerplate.UnitTests/Boilerplate.UnitTests.csproj" />
+  </Folder>
+</Solution>

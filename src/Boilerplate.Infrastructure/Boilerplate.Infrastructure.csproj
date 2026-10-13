@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Domain types are available transitively through Application; do not add a direct Domain reference. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Boilerplate.Application\Boilerplate.Application.csproj" />
+  </ItemGroup>
+</Project>
