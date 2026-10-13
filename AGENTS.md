@@ -26,7 +26,7 @@ dotnet test -c Release
 | `src/Boilerplate.Domain` | Entities, domain rules, domain enums. No project or package references. |
 | `src/Boilerplate.Application` | Use cases (`Features/<Area>/<UseCase>/`), ports, application exceptions, settings classes. |
 | `src/Boilerplate.Infrastructure` | EF Core, migrations, implementations of Application ports. |
-| `src/Boilerplate.Api` | Composition root, endpoints, HTTP middleware, OpenAPI. |
+| `src/Boilerplate.Api` | Composition root, controllers (`Controllers/`), authentication, HTTP middleware, OpenAPI. |
 | `tests/Boilerplate.UnitTests` | Domain and Application logic. |
 | `tests/Boilerplate.IntegrationTests` | The real API in memory (`WebApplicationFactory`); real database from M3. |
 | `tests/Boilerplate.ArchitectureTests` | Dependency and package rules. |
@@ -96,6 +96,15 @@ The rules in [docs/architecture.md](docs/architecture.md) are enforced by `Boile
   Review the generated SQL shape. Never edit a migration that has been applied anywhere; add a new one.
   `MigrationTests` fails if the model changed without a migration.
 
+## API and authentication (ADR-0016, ADR-0020)
+
+- HTTP endpoints are MVC controllers in `src/Boilerplate.Api/Controllers`, routes under `/api/v1`, `[ApiController]`.
+  Controllers stay thin: bind, call one Application handler, return the result.
+- Every endpoint requires an authenticated user with a `sub` claim (fallback policy). Do not add `[AllowAnonymous]`
+  or `.AllowAnonymous()` without a reason recorded in an ADR; today only health checks and Development documentation allow it.
+- Use `ICurrentUser` for the caller and `ITenantContext` for the tenant. Never read claims or `HttpContext` in Application code.
+- Never weaken token validation (issuer, audience, lifetime, signature) or add custom JWT parsing.
+
 ## Tenancy (ADR-0010)
 
 - Data that belongs to a customer implements `ITenantOwned`. The query filter, foreign key, index and
@@ -113,6 +122,8 @@ The rules in [docs/architecture.md](docs/architecture.md) are enforced by `Boile
 - Security-relevant fixes (authentication, authorization, tenancy): a regression test that fails before the fix.
 - Integration tests use `ApiFactory` (`tests/Boilerplate.IntegrationTests/Support`) and pass
   `TestContext.Current.CancellationToken` to async calls.
+- Authenticated requests use `factory.CreateAuthenticatedClient(TestTokens.Create(...))`. Every new endpoint gets a
+  test that it rejects anonymous callers (401) in addition to its behaviour tests.
 - Persistence tests get real PostgreSQL from the assembly-wide `PostgresFixture` and build services through
   `PersistenceServices` (the real `AddInfrastructure`). Isolate data by creating new tenants per test instead of resetting the database.
 - Tests must not depend on execution order, wall-clock time or external networks (Testcontainers excepted).

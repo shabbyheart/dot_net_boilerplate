@@ -4,7 +4,9 @@ using Boilerplate.IntegrationTests.Support;
 
 namespace Boilerplate.IntegrationTests;
 
-/// <summary>The error contract from ADR-0006.</summary>
+/// <summary>
+/// The error contract from ADR-0006. Requests are authenticated, because every path requires a user (ADR-0016).
+/// </summary>
 public sealed class ErrorHandlingTests(ApiFactory factory) : IClassFixture<ApiFactory>
 {
     private const string ProblemJson = "application/problem+json";
@@ -13,7 +15,7 @@ public sealed class ErrorHandlingTests(ApiFactory factory) : IClassFixture<ApiFa
     public async Task Unhandled_exception_returns_generic_500_problem_without_internals()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        using var client = factory.CreateClient();
+        using var client = factory.CreateAuthenticatedClient();
 
         using var response = await client.GetAsync(ThrowingRoutesStartupFilter.UnhandledPath, cancellationToken);
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -34,7 +36,7 @@ public sealed class ErrorHandlingTests(ApiFactory factory) : IClassFixture<ApiFa
     public async Task Not_found_exception_returns_404_problem_with_detail()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
-        using var client = factory.CreateClient();
+        using var client = factory.CreateAuthenticatedClient();
 
         using var response = await client.GetAsync(ThrowingRoutesStartupFilter.NotFoundPath, cancellationToken);
 
@@ -48,14 +50,27 @@ public sealed class ErrorHandlingTests(ApiFactory factory) : IClassFixture<ApiFa
     }
 
     [Fact]
-    public async Task Unknown_route_returns_404_problem()
+    public async Task Unknown_route_returns_404_problem_to_an_authenticated_caller()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        using var client = factory.CreateAuthenticatedClient();
+
+        using var response = await client.GetAsync("/does-not-exist", cancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe(ProblemJson);
+    }
+
+    [Fact]
+    public async Task Unknown_route_returns_401_problem_to_an_anonymous_caller()
     {
         var cancellationToken = TestContext.Current.CancellationToken;
         using var client = factory.CreateClient();
 
         using var response = await client.GetAsync("/does-not-exist", cancellationToken);
 
-        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        // Deny by default also covers paths without an endpoint, so anonymous callers cannot probe which routes exist.
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
         response.Content.Headers.ContentType?.MediaType.ShouldBe(ProblemJson);
     }
 }

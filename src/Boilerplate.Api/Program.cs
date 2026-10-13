@@ -1,4 +1,5 @@
 using System.Globalization;
+using Boilerplate.Api.Authentication;
 using Boilerplate.Api.ErrorHandling;
 using Boilerplate.Api.Tenancy;
 using Boilerplate.Application.Common.Tenancy;
@@ -47,9 +48,10 @@ try
     builder.Services.AddExceptionHandler<ApiExceptionHandler>();
     builder.Services.AddHealthChecks();
     builder.Services.AddOpenApi();
+    builder.Services.AddControllers();
 
-    // Tenant of the current request (ADR-0010); required by the database context.
-    builder.Services.AddHttpContextAccessor();
+    // Who is calling (ADR-0016) and for which tenant (ADR-0010); both are required by the database context.
+    builder.Services.AddApiAuthentication();
     builder.Services.AddScoped<ITenantContext, ClaimsTenantContext>();
     builder.Services.AddInfrastructure();
 
@@ -58,22 +60,30 @@ try
     // Outermost, so the request summary records the final status code of handled errors.
     app.UseSerilogRequestLogging();
     app.UseExceptionHandler();
+
+    // Before authentication, so 401 and 403 challenges get a ProblemDetails body.
     app.UseStatusCodePages();
+
+    app.UseAuthentication();
+    app.UseAuthorization();
 
     if (app.Environment.IsDevelopment())
     {
-        app.MapOpenApi();
-        app.MapScalarApiReference();
+        app.MapOpenApi().AllowAnonymous();
+        app.MapScalarApiReference().AllowAnonymous();
     }
 
     // Liveness: the process can serve requests. Runs no dependency checks.
-    app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
+    app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false })
+        .AllowAnonymous();
 
     // Readiness: the dependencies needed to serve traffic (the database) are reachable.
     app.MapHealthChecks("/health/ready", new HealthCheckOptions
     {
         Predicate = check => check.Tags.Contains(DependencyInjection.ReadyHealthCheckTag),
-    });
+    }).AllowAnonymous();
+
+    app.MapControllers();
 
     await app.RunAsync();
     return 0;

@@ -57,13 +57,25 @@ Failures -> typed exceptions -> ProblemDetails (RFC 9457) with traceId
 |---|---|---|
 | 1 | `UseSerilogRequestLogging` | Outermost, so the request summary records the final status code, including handled errors |
 | 2 | `UseExceptionHandler` + `ApiExceptionHandler` | Catches exceptions from everything after it and writes ProblemDetails (ADR-0006) |
-| 3 | `UseStatusCodePages` | Gives body-less error responses (for example unknown routes) a ProblemDetails body |
-| 4 | OpenAPI + Scalar (Development only) | Documentation endpoints (ADR-0013) |
-| 5 | `/health/live` | Liveness probe; runs no dependency checks |
-| 6 | `/health/ready` | Readiness probe; checks the database (health checks tagged `ready`) with a 5-second timeout, because connection retries would otherwise delay the answer by about a minute |
+| 3 | `UseStatusCodePages` | Gives body-less error responses (unknown routes, 401/403 challenges) a ProblemDetails body |
+| 4 | `UseAuthentication` | Validates the JWT bearer token and sets the user (ADR-0016) |
+| 5 | `UseAuthorization` | Applies endpoint policies; the fallback policy requires an authenticated user with `sub` everywhere else, including paths without an endpoint |
+| 6 | OpenAPI + Scalar (Development only, anonymous) | Documentation endpoints (ADR-0013) |
+| 7 | `/health/live` (anonymous) | Liveness probe; runs no dependency checks |
+| 8 | `/health/ready` (anonymous) | Readiness probe; checks the database (health checks tagged `ready`) with a 5-second timeout, because connection retries would otherwise delay the answer by about a minute |
+| 9 | Controllers (`/api/v1/...`) | Feature endpoints (ADR-0020) |
 
 The service provider validates registrations at startup (`ValidateOnBuild`, `ValidateScopes`), and a failed
-startup is logged and exits with code 1 (ADR-0007).
+startup is logged and exits with code 1 (ADR-0007). Startup also fails without valid token settings (ADR-0016).
+
+## Identity
+
+| Piece | Project | Responsibility |
+|---|---|---|
+| `ICurrentUser` | Application | The caller's user id (`sub`), or none |
+| `ClaimsCurrentUser`, `ClaimsTenantContext` | Api | Read `sub` and `tenant_id` from the validated token |
+| `AuthenticationRegistration`, `JwtBearerSettingsValidation` | Api | JWT bearer setup, deny-by-default policy, startup validation of token settings |
+| `MeController` | Api | `GET /api/v1/me`: the identity the API resolved from the caller's token |
 
 ## Persistence and tenancy
 
@@ -71,9 +83,9 @@ startup is logged and exits with code 1 (ADR-0007).
 flowchart LR
   Handler["Handler (Application)"] -->|IAppDbContext| Ctx["AppDbContext (Infrastructure)"]
   Ctx -->|query filter 'Tenant'| PG[(PostgreSQL)]
-  Ctx --> I1[AuditTimestampsInterceptor]
+  Ctx --> I1[AuditInterceptor]
   Ctx --> I2[TenantStampingInterceptor]
-  I1 -->|TimeProvider| Clock[Clock]
+  I1 -->|TimeProvider, ICurrentUser| Clock["Clock and current user"]
   I2 -->|ITenantContext| Tenant["ClaimsTenantContext (Api): tenant_id claim"]
 ```
 
@@ -82,7 +94,7 @@ flowchart LR
 | `Entity`, `IAuditable`, `ITenantOwned`, `Tenant` | Domain | Identity (GUID v7), audit and tenancy markers, the tenant entity |
 | `IAppDbContext`, `ITenantContext` | Application | Ports used by handlers and by persistence |
 | `AppDbContext` | Infrastructure | Model, configurations, and automatic tenancy rules for every `ITenantOwned` entity |
-| `AuditTimestampsInterceptor`, `TenantStampingInterceptor` | Infrastructure | Timestamps on save; tenant stamping and cross-tenant write rejection |
+| `AuditInterceptor`, `TenantStampingInterceptor` | Infrastructure | Who and when on save (`ICurrentUser`, `TimeProvider`); tenant stamping and cross-tenant write rejection |
 | `DependencyInjection.AddInfrastructure` | Infrastructure | Options, provider, interceptors, health check; `ConfigureDbContext` is the single wiring point |
 | `ClaimsTenantContext` | Api | Current tenant from the `tenant_id` claim (none until authentication, M5) |
 

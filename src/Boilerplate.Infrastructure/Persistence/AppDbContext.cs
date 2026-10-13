@@ -59,6 +59,12 @@ public class AppDbContext : DbContext, IAppDbContext
                 modelBuilder.Entity(clrType).Property(nameof(Entity.Id)).ValueGeneratedNever();
             }
 
+            if (typeof(IAuditable).IsAssignableFrom(clrType))
+            {
+                modelBuilder.Entity(clrType).Property(nameof(IAuditable.CreatedBy)).HasMaxLength(IAuditable.UserIdMaxLength);
+                modelBuilder.Entity(clrType).Property(nameof(IAuditable.UpdatedBy)).HasMaxLength(IAuditable.UserIdMaxLength);
+            }
+
             if (typeof(ITenantOwned).IsAssignableFrom(clrType))
             {
                 ApplyTenantRulesMethod.MakeGenericMethod(clrType).Invoke(this, [modelBuilder]);

@@ -3,10 +3,11 @@
 A reusable ASP.NET Core backend foundation: four projects (Domain, Application, Infrastructure, Api)
 with vertical feature slices, enforced dependency rules, and tests from the first commit.
 
-Status: **M3, persistence foundation.** The API has structured logging, a ProblemDetails error contract,
-liveness and readiness probes, and (in Development) an OpenAPI document. It stores data in PostgreSQL through
-EF Core, with tenant isolation built in. It ships as a non-root container image, and a compose stack runs it
-locally with PostgreSQL. Business features arrive in later milestones.
+Status: **M5, authentication** (built before the reference feature, M4). The API has structured logging,
+a ProblemDetails error contract, liveness and readiness probes, and (in Development) an OpenAPI document.
+Every endpoint requires a valid JWT bearer token unless it is explicitly anonymous. It stores data in PostgreSQL
+through EF Core, with tenant isolation driven by the token's `tenant_id` claim. It ships as a non-root container
+image, and a compose stack runs it locally with PostgreSQL. Business features arrive in later milestones.
 
 ## Requirements
 
@@ -41,9 +42,17 @@ dotnet user-secrets set "Database:ConnectionString" "Host=localhost;Database=boi
 dotnet tool restore
 Database__ConnectionString="<same connection string>" dotnet ef database update --project src/Boilerplate.Infrastructure
 
-# 4. Run the API (Development, http://localhost:5080)
+# 4. Create a development token. This also writes the issuer and audience the API accepts
+#    (signing key in user secrets, issuer and audience in appsettings.Development.json).
+dotnet user-jwts create --project src/Boilerplate.Api --claim tenant_id=<a tenant id>
+
+# 5. Run the API (Development, http://localhost:5080) and call it with the token
 dotnet run --project src/Boilerplate.Api
+curl -H "Authorization: Bearer <token>" http://localhost:5080/api/v1/me
 ```
+
+In other environments, configure the issuer through `Authentication:Schemes:Bearer`: `Authority` and
+`ValidAudiences` for an OpenID Connect provider ([ADR-0016](docs/adr/0016-authentication.md)).
 
 Add a migration after changing the model:
 
@@ -54,7 +63,7 @@ dotnet ef migrations add <Name> --project src/Boilerplate.Infrastructure --outpu
 ## Containers
 
 ```bash
-# API image (non-root, chiseled runtime); needs a database connection string to start
+# API image (non-root, chiseled runtime); needs database and authentication settings to start
 docker build -f deploy/Dockerfile -t boilerplate-api .
 
 # Local stack: PostgreSQL 18 + API (Development settings, Scalar at http://localhost:8080/scalar)
@@ -65,18 +74,22 @@ docker compose -f deploy/compose.yaml down        # add --volumes to delete the 
 
 Both bind to `127.0.0.1` only. If port 5432 or 8080 is already used on your machine (for example by a local
 PostgreSQL), set `POSTGRES_PORT` or `API_PORT` in `deploy/.env` and use that port in your connection string.
+The API container accepts tokens only after you set `AUTH_AUTHORITY` (and optionally `AUTH_AUDIENCE`) in
+`deploy/.env`; `dotnet user-jwts` tokens work only for the API run with `dotnet run`.
 See [ADR-0018](docs/adr/0018-containers-and-ci.md).
 
 ## Endpoints
 
-| Path | Environment | Purpose |
-|---|---|---|
-| `/health/live` | All | Liveness: the process can serve requests (no dependency checks) |
-| `/health/ready` | All | Readiness: the database is reachable |
-| `/openapi/v1.json` | Development | OpenAPI document |
-| `/scalar` | Development | Interactive API reference |
+| Path | Environment | Access | Purpose |
+|---|---|---|---|
+| `/api/v1/me` | All | Token | The caller's user id (`sub`) and tenant id (`tenant_id`) |
+| `/health/live` | All | Anonymous | Liveness: the process can serve requests (no dependency checks) |
+| `/health/ready` | All | Anonymous | Readiness: the database is reachable |
+| `/openapi/v1.json` | Development | Anonymous | OpenAPI document |
+| `/scalar` | Development | Anonymous | Interactive API reference |
 
 Errors use RFC 9457 ProblemDetails with a `traceId` (see [ADR-0006](docs/adr/0006-error-handling-problem-details.md)).
+Requests without a valid token get 401, including requests to paths that do not exist.
 
 ## Configuration and secrets
 
@@ -87,6 +100,8 @@ CI scans the full git history with gitleaks.
 | Setting | Required | Source |
 |---|---|---|
 | `Database:ConnectionString` (`Database__ConnectionString`) | Yes; startup fails without it | User secrets or environment variable |
+| `Authentication:Schemes:Bearer:ValidAudiences` | Yes; startup fails without it | Configuration or environment variable |
+| `Authentication:Schemes:Bearer:Authority`, or `ValidIssuer` with `SigningKeys` | Yes; startup fails without one | Configuration; signing keys only in user secrets (development) |
 
 ## Repository layout
 

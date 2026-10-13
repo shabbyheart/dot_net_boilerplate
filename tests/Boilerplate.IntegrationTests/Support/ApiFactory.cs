@@ -7,15 +7,17 @@ namespace Boilerplate.IntegrationTests.Support;
 
 /// <summary>
 /// Hosts the real API in memory in the Development environment, connected to the test PostgreSQL container,
-/// plus test-only routes that throw (see <see cref="ThrowingRoutesStartupFilter"/>).
+/// accepting tokens from <see cref="TestTokens"/>, plus test-only routes that throw
+/// (see <see cref="ThrowingRoutesStartupFilter"/>).
 /// </summary>
 public sealed class ApiFactory(PostgresFixture postgres) : WebApplicationFactory<Program>
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development");
-        builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(
-            new Dictionary<string, string?> { ["Database:ConnectionString"] = postgres.ConnectionString }));
+        builder.ConfigureAppConfiguration((_, configuration) => configuration
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["Database:ConnectionString"] = postgres.ConnectionString })
+            .AddInMemoryCollection(TestTokens.ApiSettings));
         builder.ConfigureServices(services => services.AddSingleton<IStartupFilter, ThrowingRoutesStartupFilter>());
     }
 }
