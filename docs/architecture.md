@@ -106,8 +106,18 @@ flowchart LR
 | `PermissionChecker` | Application | One indexed query per check, scoped to the current user and tenant; no cache (ADR-0017) |
 | `RequirePermissionAttribute`, `PermissionRequirement`, `PermissionAuthorizationHandler` | Api | Declaring and evaluating permission requirements on endpoints |
 
-Anonymous → 401; authenticated without the permission or without a tenant → 403. Role administration endpoints
-come with M7.
+Anonymous → 401; authenticated without the permission or without a tenant → 403.
+
+### Role administration (ADR-0022)
+
+| Piece | Project | Responsibility |
+|---|---|---|
+| `Role.IsAdministrator` | Domain | The built-in role that implicitly grants every permission; cannot be changed or deleted |
+| `PermissionCatalog` | Application | Every known permission; roles may only contain these |
+| `RoleEscalationGuard` | Application | Callers grant, remove or hand out only permissions they hold (403 otherwise) |
+| `Features/Roles`, `RolesController`, `PermissionsController` | Application, Api | Role CRUD, assignments, catalogue |
+| `BootstrapTenantHandler`, `BootstrapCommand` | Application, Api | `bootstrap` command: tenant + administrator role + first administrator, one transaction |
+| `TenantOverride` | Application | Explicit tenant for commands and background work; `ClaimsTenantContext` prefers it over the claim |
 
 ## Persistence and tenancy
 

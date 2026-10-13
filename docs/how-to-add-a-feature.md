@@ -37,6 +37,10 @@ Unit tests: `tests/Boilerplate.UnitTests/Domain/CustomerTests.cs`, like [`Projec
 [`ProjectPermissions.cs`](../src/Boilerplate.Application/Features/Projects/ProjectPermissions.cs): lowercase
 `area.action` names, usually `customers.read` and `customers.manage` (ADR-0017).
 
+Add both constants to [`PermissionCatalog.All`](../src/Boilerplate.Application/Common/Security/PermissionCatalog.cs);
+otherwise no role can grant them, and `PermissionCatalogTests` fails (ADR-0022). Administrators get new permissions
+automatically.
+
 ## 4. Use cases
 
 One folder per use case under `src/Boilerplate.Application/Features/Customers/`, like

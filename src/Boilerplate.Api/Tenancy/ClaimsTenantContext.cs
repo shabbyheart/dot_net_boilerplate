@@ -3,10 +3,12 @@ using Boilerplate.Application.Common.Tenancy;
 namespace Boilerplate.Api.Tenancy;
 
 /// <summary>
-/// The current tenant for HTTP requests: the authenticated user's <c>tenant_id</c> claim (ADR-0010).
-/// Anonymous requests, or a missing or malformed claim, mean no tenant.
+/// The current tenant (ADR-0010): an explicit <see cref="TenantOverride"/> when set (commands, background work),
+/// otherwise the authenticated user's <c>tenant_id</c> claim. Anonymous requests, or a missing or malformed claim,
+/// mean no tenant.
 /// </summary>
-internal sealed class ClaimsTenantContext(IHttpContextAccessor httpContextAccessor) : ITenantContext
+internal sealed class ClaimsTenantContext(IHttpContextAccessor httpContextAccessor, TenantOverride tenantOverride)
+    : ITenantContext
 {
     public const string TenantIdClaimType = "tenant_id";
 
@@ -14,6 +16,11 @@ internal sealed class ClaimsTenantContext(IHttpContextAccessor httpContextAccess
     {
         get
         {
+            if (tenantOverride.TenantId is { } explicitTenant)
+            {
+                return explicitTenant;
+            }
+
             var user = httpContextAccessor.HttpContext?.User;
             if (user?.Identity?.IsAuthenticated != true)
             {

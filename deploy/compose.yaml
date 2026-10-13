@@ -27,7 +27,9 @@ services:
       dockerfile: deploy/Dockerfile
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      Database__ConnectionString: "Host=db;Database=boilerplate;Username=boilerplate;Password=${POSTGRES_PASSWORD}"
+      # GSS Encryption Mode=Disable: the chiseled image has no Kerberos library, so Npgsql's default attempt to use
+      # GSS encryption logs an error on every new connection before falling back to password authentication.
+      Database__ConnectionString: "Host=db;Database=boilerplate;Username=boilerplate;Password=${POSTGRES_PASSWORD};GSS Encryption Mode=Disable"
       # Token issuer (ADR-0016). The placeholder lets the stack start; set AUTH_AUTHORITY to accept real tokens.
       Authentication__Schemes__Bearer__Authority: ${AUTH_AUTHORITY:-https://issuer.invalid}
       Authentication__Schemes__Bearer__ValidAudiences__0: ${AUTH_AUDIENCE:-boilerplate-api}

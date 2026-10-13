@@ -21,6 +21,7 @@ internal sealed partial class ApiExceptionHandler(
         {
             NotFoundException notFound => (StatusCodes.Status404NotFound, notFound.Message),
             ConflictException conflict => (StatusCodes.Status409Conflict, conflict.Message),
+            ForbiddenException forbidden => (StatusCodes.Status403Forbidden, forbidden.Message),
 
             // A request that passed validation but breaks a domain rule; the message is written for callers.
             DomainException domainRule => (StatusCodes.Status400BadRequest, domainRule.Message),

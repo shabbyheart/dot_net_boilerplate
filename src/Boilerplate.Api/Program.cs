@@ -1,5 +1,6 @@
 using System.Globalization;
 using Boilerplate.Api.Authentication;
+using Boilerplate.Api.Commands;
 using Boilerplate.Api.ErrorHandling;
 using Boilerplate.Api.Tenancy;
 using Boilerplate.Api.Validation;
@@ -64,6 +65,12 @@ try
     builder.Services.AddInfrastructure();
 
     var app = builder.Build();
+
+    // One-off commands use the same configuration and services but never start the web server (ADR-0022).
+    if (BootstrapCommand.IsRequested(args))
+    {
+        return await BootstrapCommand.RunAsync(app.Services, args, CancellationToken.None);
+    }
 
     // Outermost, so the request summary records the final status code of handled errors.
     app.UseSerilogRequestLogging();

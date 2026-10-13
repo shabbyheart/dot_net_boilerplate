@@ -14,6 +14,12 @@ internal sealed class RoleConfiguration : IEntityTypeConfiguration<Role>
         // Role names identify roles within a tenant; unique per tenant (ADR-0010).
         builder.HasIndex(role => new { role.TenantId, role.Name }).IsUnique();
 
+        // At most one built-in administrator role per tenant (ADR-0022). Partial index: only administrator rows.
+        builder.HasIndex(role => role.TenantId)
+            .IsUnique()
+            .HasFilter("is_administrator")
+            .HasDatabaseName("ux_roles_one_administrator_per_tenant");
+
         builder.OwnsMany(role => role.Permissions, permissions =>
         {
             permissions.ToTable("role_permissions");
