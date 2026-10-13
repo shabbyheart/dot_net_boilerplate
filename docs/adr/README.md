@@ -19,20 +19,21 @@ the decision, the reasoning and the trade-offs.
 | [0003](0003-testing-approach.md) | Testing approach and tooling | Accepted | M0 |
 | [0004](0004-explicit-di-no-mediator.md) | Explicit dependency injection; no mediator library | Accepted | M0 |
 | 0005 | Querying through `IAppDbContext`; no repositories or Specification pattern | Not yet written | M3 |
-| 0006 | Error handling and the ProblemDetails contract | Not yet written | M1 |
-| 0007 | Configuration and secrets | Not yet written | M1 |
-| 0008 | Logging and observability | Not yet written | M1 (OpenTelemetry part before M10) |
+| [0006](0006-error-handling-problem-details.md) | Error handling and the ProblemDetails contract | Accepted | M1 |
+| [0007](0007-configuration-and-secrets.md) | Configuration and secrets | Accepted | M1 |
+| [0008](0008-logging-and-observability.md) | Logging and observability | Accepted (tracing and metrics to be superseded before M10) | M1 |
 | 0009 | Database provider | Not yet written | M3 |
 | 0010 | Tenancy model | Not yet written | M3 |
 | 0011 | Persistence, transactions and side effects | Not yet written | M3 |
 | 0012 | IDs, time and soft delete | Not yet written | M3 |
-| 0013 | API style, versioning and OpenAPI | Not yet written | M4 |
+| [0013](0013-openapi-document-and-reference-ui.md) | OpenAPI document and API reference UI | Accepted | M1 |
 | 0014 | Validation | Not yet written | M4 |
 | 0015 | Mapping | Not yet written | M4 |
 | 0016 | Authentication strategy | Not yet written | M5 |
 | 0017 | Authorization and revocation semantics | Not yet written | M6 |
 | 0018 | Containers and CI/CD | Not yet written | M2 |
 | 0019 | Outbox and background processing | Not yet written | M9 |
+| 0020 | API style and versioning | Not yet written | M4 |
 
 ## Template
 
