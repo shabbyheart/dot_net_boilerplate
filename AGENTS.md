@@ -30,6 +30,7 @@ dotnet test -c Release
 | `tests/Boilerplate.UnitTests` | Domain and Application logic. |
 | `tests/Boilerplate.IntegrationTests` | The real API in memory (`WebApplicationFactory`); real database from M3. |
 | `tests/Boilerplate.ArchitectureTests` | Dependency and package rules. |
+| `deploy/` | Dockerfile and local compose stack (PostgreSQL + API). |
 | `docs/` | Architecture overview and ADRs. |
 
 ## Dependency rules
@@ -46,6 +47,8 @@ The rules in [docs/architecture.md](docs/architecture.md) are enforced by `Boile
 - Versions live only in `Directory.Packages.props`.
 - A new package needs a reason recorded in an ADR: purpose, licence, alternatives (including "no package").
 - Banned: `MediatR` (ADR-0004) and `Ardalis.*` (ADR-0002). Prefer the .NET base library and ASP.NET Core built-ins.
+- Every restore runs NuGet audit; a known vulnerability fails the build. Fix it by upgrading. If that is impossible,
+  add `NuGetAuditSuppress` with a reason and an issue reference (ADR-0018). Never disable the audit.
 
 ## Design rules
 

@@ -1,0 +1,15 @@
+# Keep the build context small and free of local or secret files (ADR-0018).
+**/bin/
+**/obj/
+**/.vs/
+**/.vscode/
+**/.idea/
+**/*.user
+.git/
+.github/
+docs/
+tests/
+deploy/.env
+**/appsettings.Development.json
+**/appsettings.*.local.json
+**/*.md

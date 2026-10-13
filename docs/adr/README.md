@@ -22,7 +22,7 @@ the decision, the reasoning and the trade-offs.
 | [0006](0006-error-handling-problem-details.md) | Error handling and the ProblemDetails contract | Accepted | M1 |
 | [0007](0007-configuration-and-secrets.md) | Configuration and secrets | Accepted | M1 |
 | [0008](0008-logging-and-observability.md) | Logging and observability | Accepted (tracing and metrics to be superseded before M10) | M1 |
-| 0009 | Database provider | Not yet written | M3 |
+| [0009](0009-database-provider.md) | Database provider (PostgreSQL) | Accepted | M2 |
 | 0010 | Tenancy model | Not yet written | M3 |
 | 0011 | Persistence, transactions and side effects | Not yet written | M3 |
 | 0012 | IDs, time and soft delete | Not yet written | M3 |
@@ -31,7 +31,7 @@ the decision, the reasoning and the trade-offs.
 | 0015 | Mapping | Not yet written | M4 |
 | 0016 | Authentication strategy | Not yet written | M5 |
 | 0017 | Authorization and revocation semantics | Not yet written | M6 |
-| 0018 | Containers and CI/CD | Not yet written | M2 |
+| [0018](0018-containers-and-ci.md) | Containers and CI | Accepted (CD open until A14) | M2 |
 | 0019 | Outbox and background processing | Not yet written | M9 |
 | 0020 | API style and versioning | Not yet written | M4 |
 

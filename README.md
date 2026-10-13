@@ -9,6 +9,7 @@ probe and (in Development) an OpenAPI document. Business features arrive in late
 ## Requirements
 
 - .NET 10 SDK (pinned by `global.json`; any 10.0 feature band from 10.0.100 works)
+- Docker with Compose v2, for the container image and the local stack (and for integration tests from M3)
 
 ## Commands
 
@@ -41,6 +42,7 @@ CI scans the full git history with gitleaks.
 ```
 src/        Boilerplate.Domain, .Application, .Infrastructure, .Api
 tests/      Boilerplate.UnitTests, .IntegrationTests, .ArchitectureTests
+deploy/     Dockerfile, compose.yaml, .env.example
 docs/       architecture.md, adr/ (architecture decision records)
 ```
 
