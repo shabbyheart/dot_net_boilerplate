@@ -26,6 +26,11 @@
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
   </ItemGroup>
 
+  <ItemGroup Label="Dependency injection">
+    <!-- ADR-0004: AddApplication() in Application (abstractions only, allowlisted by ADR-0001). -->
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.12" />
+  </ItemGroup>
+
   <ItemGroup Label="Configuration">
     <!-- ADR-0007: options bound from configuration and validated at startup, outside the web host. -->
     <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.12" />

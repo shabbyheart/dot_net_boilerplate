@@ -3,11 +3,12 @@
 A reusable ASP.NET Core backend foundation: four projects (Domain, Application, Infrastructure, Api)
 with vertical feature slices, enforced dependency rules, and tests from the first commit.
 
-Status: **M5, authentication** (built before the reference feature, M4). The API has structured logging,
-a ProblemDetails error contract, liveness and readiness probes, and (in Development) an OpenAPI document.
-Every endpoint requires a valid JWT bearer token unless it is explicitly anonymous. It stores data in PostgreSQL
-through EF Core, with tenant isolation driven by the token's `tenant_id` claim. It ships as a non-root container
-image, and a compose stack runs it locally with PostgreSQL. Business features arrive in later milestones.
+Status: **M6, authorization** (M5 and M6 were built before the reference feature, M4). The API has structured
+logging, a ProblemDetails error contract, liveness and readiness probes, and (in Development) an OpenAPI document.
+Every endpoint requires a valid JWT bearer token unless it is explicitly anonymous, and endpoints can require
+permissions granted through tenant-scoped roles, checked on every request so revocation is immediate. It stores data
+in PostgreSQL through EF Core, with tenant isolation driven by the token's `tenant_id` claim. It ships as a non-root
+container image, and a compose stack runs it locally with PostgreSQL. Business features arrive in later milestones.
 
 ## Requirements
 

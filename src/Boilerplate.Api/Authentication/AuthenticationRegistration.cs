@@ -1,3 +1,4 @@
+using Boilerplate.Api.Authorization;
 using Boilerplate.Application.Common.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -33,11 +34,17 @@ internal static class AuthenticationRegistration
         services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme).ValidateOnStart();
 
         // Every endpoint requires an authenticated user with a subject, unless it explicitly allows anonymous access.
+        // The default policy (used by [RequirePermission] and any other [Authorize]) is the same baseline (ADR-0017).
+        var authenticatedUser = new AuthorizationPolicyBuilder()
+            .RequireAuthenticatedUser()
+            .RequireClaim(JwtRegisteredClaimNames.Sub)
+            .Build();
         services.AddAuthorizationBuilder()
-            .SetFallbackPolicy(new AuthorizationPolicyBuilder()
-                .RequireAuthenticatedUser()
-                .RequireClaim(JwtRegisteredClaimNames.Sub)
-                .Build());
+            .SetFallbackPolicy(authenticatedUser)
+            .SetDefaultPolicy(authenticatedUser);
+
+        // Permission checks query the database per request, so the handler is scoped like the database context.
+        services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUser, ClaimsCurrentUser>();

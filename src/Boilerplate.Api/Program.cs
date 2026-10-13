@@ -2,6 +2,7 @@ using System.Globalization;
 using Boilerplate.Api.Authentication;
 using Boilerplate.Api.ErrorHandling;
 using Boilerplate.Api.Tenancy;
+using Boilerplate.Application;
 using Boilerplate.Application.Common.Tenancy;
 using Boilerplate.Infrastructure;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -53,6 +54,7 @@ try
     // Who is calling (ADR-0016) and for which tenant (ADR-0010); both are required by the database context.
     builder.Services.AddApiAuthentication();
     builder.Services.AddScoped<ITenantContext, ClaimsTenantContext>();
+    builder.Services.AddApplication();
     builder.Services.AddInfrastructure();
 
     var app = builder.Build();
@@ -80,7 +82,7 @@ try
     // Readiness: the dependencies needed to serve traffic (the database) are reachable.
     app.MapHealthChecks("/health/ready", new HealthCheckOptions
     {
-        Predicate = check => check.Tags.Contains(DependencyInjection.ReadyHealthCheckTag),
+        Predicate = check => check.Tags.Contains(Boilerplate.Infrastructure.DependencyInjection.ReadyHealthCheckTag),
     }).AllowAnonymous();
 
     app.MapControllers();

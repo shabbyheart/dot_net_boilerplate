@@ -1,3 +1,4 @@
+using Boilerplate.Domain.Authorization;
 using Boilerplate.Domain.Tenants;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,6 +11,10 @@ namespace Boilerplate.Application.Common.Persistence;
 public interface IAppDbContext
 {
     DbSet<Tenant> Tenants { get; }
+
+    DbSet<Role> Roles { get; }
+
+    DbSet<RoleAssignment> RoleAssignments { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
