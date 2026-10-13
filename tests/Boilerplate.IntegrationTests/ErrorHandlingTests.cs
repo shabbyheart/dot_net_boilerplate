@@ -50,6 +50,20 @@ public sealed class ErrorHandlingTests(ApiFactory factory) : IClassFixture<ApiFa
     }
 
     [Fact]
+    public async Task Domain_rule_violation_returns_400_problem_with_detail()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        using var client = factory.CreateAuthenticatedClient();
+
+        using var response = await client.GetAsync(ThrowingRoutesStartupFilter.DomainRulePath, cancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe(ProblemJson);
+        using var problem = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+        problem.RootElement.GetProperty("detail").GetString().ShouldBe("Widget name must not be empty.");
+    }
+
+    [Fact]
     public async Task Unknown_route_returns_404_problem_to_an_authenticated_caller()
     {
         var cancellationToken = TestContext.Current.CancellationToken;

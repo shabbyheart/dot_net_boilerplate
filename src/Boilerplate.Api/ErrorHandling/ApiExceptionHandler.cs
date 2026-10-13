@@ -1,4 +1,5 @@
 using Boilerplate.Application.Common.Exceptions;
+using Boilerplate.Domain.Common;
 using Microsoft.AspNetCore.Diagnostics;
 
 namespace Boilerplate.Api.ErrorHandling;
@@ -19,6 +20,10 @@ internal sealed partial class ApiExceptionHandler(
         var (statusCode, detail) = exception switch
         {
             NotFoundException notFound => (StatusCodes.Status404NotFound, notFound.Message),
+            ConflictException conflict => (StatusCodes.Status409Conflict, conflict.Message),
+
+            // A request that passed validation but breaks a domain rule; the message is written for callers.
+            DomainException domainRule => (StatusCodes.Status400BadRequest, domainRule.Message),
             _ => (StatusCodes.Status500InternalServerError, null),
         };
 

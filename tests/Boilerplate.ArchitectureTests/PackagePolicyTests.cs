@@ -60,6 +60,9 @@ public sealed class PackagePolicyTests
         // ADR-0005: EF Core itself for DbSet<T>; never a provider or the relational package.
         var isEntityFrameworkCore = package.Equals("Microsoft.EntityFrameworkCore", StringComparison.OrdinalIgnoreCase);
 
-        return isExtensionsAbstractions || isEntityFrameworkCore;
+        // ADR-0014: FluentValidation itself; not its ASP.NET Core or assembly-scanning packages.
+        var isFluentValidation = package.Equals("FluentValidation", StringComparison.OrdinalIgnoreCase);
+
+        return isExtensionsAbstractions || isEntityFrameworkCore || isFluentValidation;
     }
 }

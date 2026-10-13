@@ -1,4 +1,5 @@
 using Boilerplate.Domain.Authorization;
+using Boilerplate.Domain.Projects;
 using Boilerplate.Domain.Tenants;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,6 +16,8 @@ public interface IAppDbContext
     DbSet<Role> Roles { get; }
 
     DbSet<RoleAssignment> RoleAssignments { get; }
+
+    DbSet<Project> Projects { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

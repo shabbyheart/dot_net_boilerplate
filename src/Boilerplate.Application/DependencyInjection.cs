@@ -1,4 +1,5 @@
 using Boilerplate.Application.Common.Security;
+using Boilerplate.Application.Features.Projects;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Boilerplate.Application;
@@ -9,6 +10,8 @@ public static class DependencyInjection
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
         services.AddScoped<PermissionChecker>();
+
+        services.AddProjectsFeature();
 
         return services;
     }
