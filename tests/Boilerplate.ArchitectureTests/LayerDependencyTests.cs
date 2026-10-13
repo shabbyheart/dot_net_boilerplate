@@ -36,11 +36,11 @@ public sealed class LayerDependencyTests
     }
 
     [Fact]
-    public void Application_does_not_depend_on_infrastructure_api_or_aspnetcore()
+    public void Application_does_not_depend_on_infrastructure_api_aspnetcore_or_database_provider()
     {
         var result = Application
             .ShouldNot()
-            .HaveDependencyOnAny("Boilerplate.Infrastructure", "Boilerplate.Api", "Microsoft.AspNetCore")
+            .HaveDependencyOnAny("Boilerplate.Infrastructure", "Boilerplate.Api", "Microsoft.AspNetCore", "Npgsql")
             .GetResult();
 
         result.IsSuccessful.ShouldBeTrue(Describe(result));

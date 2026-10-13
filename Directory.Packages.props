@@ -15,7 +15,25 @@
     <PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" />
   </ItemGroup>
 
+  <ItemGroup Label="Persistence">
+    <!-- ADR-0005 (Application may reference EF Core), ADR-0009/0011 (Npgsql, naming, health check, tools). -->
+    <PackageVersion Include="EFCore.NamingConventions" Version="10.0.1" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.12" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+  </ItemGroup>
+
+  <ItemGroup Label="Configuration">
+    <!-- ADR-0007: options bound from configuration and validated at startup, outside the web host. -->
+    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Options.DataAnnotations" Version="10.0.12" />
+  </ItemGroup>
+
   <ItemGroup Label="Testing">
+    <!-- ADR-0003/0012: real PostgreSQL in tests and a controllable clock. -->
+    <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.10.0" />
+    <PackageVersion Include="Testcontainers.PostgreSql" Version="4.16.0" />
     <!-- ADR-0003: WebApplicationFactory for integration tests. -->
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.12" />
     <PackageVersion Include="NetArchTest.Rules" Version="1.3.2" />

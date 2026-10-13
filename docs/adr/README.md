@@ -18,14 +18,14 @@ the decision, the reasoning and the trade-offs.
 | [0002](0002-platform-and-package-policy.md) | Platform, SDK pinning, Central Package Management, package policy | Accepted | M0 |
 | [0003](0003-testing-approach.md) | Testing approach and tooling | Accepted | M0 |
 | [0004](0004-explicit-di-no-mediator.md) | Explicit dependency injection; no mediator library | Accepted | M0 |
-| 0005 | Querying through `IAppDbContext`; no repositories or Specification pattern | Not yet written | M3 |
+| [0005](0005-data-access-through-iappdbcontext.md) | Data access through `IAppDbContext`; no repositories or Specification pattern | Accepted | M3 |
 | [0006](0006-error-handling-problem-details.md) | Error handling and the ProblemDetails contract | Accepted | M1 |
 | [0007](0007-configuration-and-secrets.md) | Configuration and secrets | Accepted | M1 |
 | [0008](0008-logging-and-observability.md) | Logging and observability | Accepted (tracing and metrics to be superseded before M10) | M1 |
 | [0009](0009-database-provider.md) | Database provider (PostgreSQL) | Accepted | M2 |
-| 0010 | Tenancy model | Not yet written | M3 |
-| 0011 | Persistence, transactions and side effects | Not yet written | M3 |
-| 0012 | IDs, time and soft delete | Not yet written | M3 |
+| [0010](0010-tenancy-model.md) | Tenancy model (always multi-tenant, shared schema) | Accepted | M3 |
+| [0011](0011-persistence-transactions-and-side-effects.md) | Persistence, transactions and side effects | Accepted | M3 |
+| [0012](0012-ids-time-and-soft-delete.md) | IDs, time and soft delete | Accepted | M3 |
 | [0013](0013-openapi-document-and-reference-ui.md) | OpenAPI document and API reference UI | Accepted | M1 |
 | 0014 | Validation | Not yet written | M4 |
 | 0015 | Mapping | Not yet written | M4 |

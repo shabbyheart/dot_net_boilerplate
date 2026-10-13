@@ -82,13 +82,28 @@ The rules in [docs/architecture.md](docs/architecture.md) are enforced by `Boile
   outside the composition root. Never commit secrets (ADR-0007).
 - Comments explain why, not what.
 
-## Persistence (applies from M3)
+## Persistence
 
-- Every string property needs an explicit decision: a sensible maximum length for bounded values, or a
-  documented unbounded type for free-form text.
+- Handlers use `IAppDbContext` (ADR-0005). Add a `DbSet<T>` there only for aggregate roots.
+- Entities derive from `Entity` (GUID v7 id). Auditable entities implement `IAuditable`; never set its timestamps yourself.
+- Configuration goes in `Infrastructure/Persistence/Configurations/<Entity>Configuration.cs` (`IEntityTypeConfiguration<T>`).
+- Every string property needs an explicit decision: `HasMaxLength(n)` for bounded values, or
+  `HasColumnType("text")` for free-form text. `ModelConventionTests` fails on undecided strings.
 - Add indexes for real query patterns, foreign keys and uniqueness constraints, with a short reason in the
   configuration. No blanket indexing.
-- Never edit a migration that has been applied anywhere; add a new one.
+- One commit point per write use case; read-only handlers never save; never hold a transaction across a remote call (ADR-0011).
+- Migrations: `dotnet ef migrations add <Name> --project src/Boilerplate.Infrastructure --output-dir Persistence/Migrations`.
+  Review the generated SQL shape. Never edit a migration that has been applied anywhere; add a new one.
+  `MigrationTests` fails if the model changed without a migration.
+
+## Tenancy (ADR-0010)
+
+- Data that belongs to a customer implements `ITenantOwned`. The query filter, foreign key, index and
+  write checks are applied automatically; do not filter by tenant in handlers and never set `TenantId` yourself.
+- Unique constraints on tenant-owned data start with `TenantId` (`HasIndex(x => new { x.TenantId, x.Name }).IsUnique()`).
+- Do not call `IgnoreQueryFilters()` outside a reviewed platform-administration path.
+- Raw SQL on tenant-owned tables belongs in Infrastructure, takes the tenant id as a parameter, and needs a cross-tenant test.
+- Every new tenant-owned entity needs isolation tests like `TenantIsolationTests` (reads, writes, bulk operations).
 
 ## Tests
 
@@ -98,6 +113,8 @@ The rules in [docs/architecture.md](docs/architecture.md) are enforced by `Boile
 - Security-relevant fixes (authentication, authorization, tenancy): a regression test that fails before the fix.
 - Integration tests use `ApiFactory` (`tests/Boilerplate.IntegrationTests/Support`) and pass
   `TestContext.Current.CancellationToken` to async calls.
+- Persistence tests get real PostgreSQL from the assembly-wide `PostgresFixture` and build services through
+  `PersistenceServices` (the real `AddInfrastructure`). Isolate data by creating new tenants per test instead of resetting the database.
 - Tests must not depend on execution order, wall-clock time or external networks (Testcontainers excepted).
 - Test method names: `Method_or_behaviour_condition_expected_result` with underscores (allowed in `tests/` only).
 

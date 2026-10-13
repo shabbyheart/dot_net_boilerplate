@@ -1,5 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <!-- ADR-0005: DbSet<T> for IAppDbContext. No provider or relational packages here. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Boilerplate.Domain\Boilerplate.Domain.csproj" />
   </ItemGroup>
 </Project>

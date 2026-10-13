@@ -1,5 +1,8 @@
 using System.Globalization;
 using Boilerplate.Api.ErrorHandling;
+using Boilerplate.Api.Tenancy;
+using Boilerplate.Application.Common.Tenancy;
+using Boilerplate.Infrastructure;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Scalar.AspNetCore;
 using Serilog;
@@ -45,6 +48,11 @@ try
     builder.Services.AddHealthChecks();
     builder.Services.AddOpenApi();
 
+    // Tenant of the current request (ADR-0010); required by the database context.
+    builder.Services.AddHttpContextAccessor();
+    builder.Services.AddScoped<ITenantContext, ClaimsTenantContext>();
+    builder.Services.AddInfrastructure();
+
     var app = builder.Build();
 
     // Outermost, so the request summary records the final status code of handled errors.
@@ -60,6 +68,12 @@ try
 
     // Liveness: the process can serve requests. Runs no dependency checks.
     app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
+
+    // Readiness: the dependencies needed to serve traffic (the database) are reachable.
+    app.MapHealthChecks("/health/ready", new HealthCheckOptions
+    {
+        Predicate = check => check.Tags.Contains(DependencyInjection.ReadyHealthCheckTag),
+    });
 
     await app.RunAsync();
     return 0;
