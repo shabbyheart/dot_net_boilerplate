@@ -11,6 +11,13 @@
 
     <!-- Warnings fail the build locally and in CI so both behave the same. -->
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+    <!--
+      NuGet audit on every restore, direct and transitive packages (ADR-0018). With warnings as errors,
+      a known vulnerability fails the restore. Suppress only with NuGetAuditSuppress plus a reason.
+    -->
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(CI)' == 'true'">

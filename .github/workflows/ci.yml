@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Weekly run so newly published package advisories fail CI without a code change (ADR-0018).
+  schedule:
+    - cron: "0 3 * * 1"
 
 permissions:
   contents: read
@@ -25,7 +28,7 @@ jobs:
         with:
           global-json-file: global.json
 
-      - name: Restore
+      - name: Restore (includes NuGet vulnerability audit)
         run: dotnet restore
 
       - name: Check formatting and code style
@@ -59,3 +62,53 @@ jobs:
 
       - name: Scan git history
         run: ./gitleaks git --redact --verbose --exit-code 1 .
+
+  # ADR-0018: the image builds, runs as non-root, serves health checks, and the compose stack starts.
+  container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build image
+        run: docker build --file deploy/Dockerfile --tag boilerplate-api:ci .
+
+      - name: Image runs as a non-root user
+        run: |
+          user="$(docker image inspect --format '{{.Config.User}}' boilerplate-api:ci)"
+          echo "Configured user: '${user}'"
+          if [ -z "${user}" ] || [ "${user}" = "root" ] || [ "${user}" = "0" ]; then
+            echo "The image must not run as root."
+            exit 1
+          fi
+
+      - name: Smoke test the image (Production environment)
+        run: |
+          docker run --detach --name api --publish 8080:8080 boilerplate-api:ci
+          curl --fail --silent --show-error --retry 30 --retry-delay 1 --retry-all-errors http://localhost:8080/health/live
+          echo
+          status="$(curl --silent --output /dev/null --write-out '%{http_code}' http://localhost:8080/openapi/v1.json)"
+          if [ "${status}" != "404" ]; then
+            echo "OpenAPI must not be exposed outside Development (got ${status})."
+            exit 1
+          fi
+
+      - name: Show API container logs and remove it
+        if: always()
+        run: |
+          docker logs api || true
+          docker rm --force api || true
+
+      - name: Compose stack starts and is healthy
+        run: |
+          printf 'POSTGRES_PASSWORD=%s\n' "$(openssl rand -hex 16)" > deploy/.env
+          docker compose --file deploy/compose.yaml up --detach --build --wait --wait-timeout 180
+          curl --fail --silent --show-error --retry 30 --retry-delay 1 --retry-all-errors http://localhost:8080/health/live
+          echo
+          docker compose --file deploy/compose.yaml exec -T db pg_isready -U boilerplate -d boilerplate
+
+      - name: Compose logs and teardown
+        if: always()
+        run: |
+          docker compose --file deploy/compose.yaml logs || true
+          docker compose --file deploy/compose.yaml down --volumes || true
