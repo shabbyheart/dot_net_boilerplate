@@ -146,6 +146,7 @@ jobs:
           fi
           # Migrations run as a separate deployment step (ADR-0011), as in a real deployment.
           dotnet tool restore
+          dotnet restore src/Boilerplate.Infrastructure
           Database__ConnectionString="Host=localhost;Port=5432;Database=boilerplate;Username=boilerplate;Password=${password}" \
             dotnet ef database update --project src/Boilerplate.Infrastructure
           # Ready means the API reached PostgreSQL and every migration is applied.
