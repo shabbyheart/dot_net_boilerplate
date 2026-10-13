@@ -1,15 +1,50 @@
 using System.Diagnostics;
 using System.Net;
+using Boilerplate.Infrastructure.Persistence;
 using Boilerplate.IntegrationTests.Support;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 
 namespace Boilerplate.IntegrationTests;
 
-/// <summary>Readiness reflects whether the database is reachable (ADR-0011).</summary>
-public sealed class ReadinessTests(ApiFactory factory) : IClassFixture<ApiFactory>
+/// <summary>Readiness reflects whether the database is reachable and migrated (ADR-0011, ADR-0024).</summary>
+public sealed class ReadinessTests(ApiFactory factory, PostgresFixture postgres) : IClassFixture<ApiFactory>
 {
+    [Fact]
+    public async Task Ready_returns_503_until_migrations_are_applied()
+    {
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var database = $"unmigrated_{Guid.NewGuid():N}";
+        await using (var connection = new NpgsqlConnection(postgres.ConnectionString))
+        {
+            await connection.OpenAsync(cancellationToken);
+            await using var create = new NpgsqlCommand($"CREATE DATABASE \"{database}\"", connection);
+            await create.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        var connectionString = postgres.ConnectionStringFor(database);
+        await using var api = WithConnectionString(connectionString);
+        using var client = api.CreateClient();
+
+        using (var beforeMigration = await client.GetAsync("/health/ready", cancellationToken))
+        {
+            beforeMigration.StatusCode.ShouldBe(HttpStatusCode.ServiceUnavailable);
+        }
+
+        await using (var services = PersistenceServices.Create(connectionString))
+        await using (var scope = services.CreateScope(tenantId: null))
+        {
+            await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync(cancellationToken);
+        }
+
+        using var afterMigration = await client.GetAsync("/health/ready", cancellationToken);
+        afterMigration.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
     [Fact]
     public async Task Ready_returns_200_when_the_database_is_reachable()
     {

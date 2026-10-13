@@ -25,6 +25,9 @@ internal sealed partial class ApiExceptionHandler(
 
             // A request that passed validation but breaks a domain rule; the message is written for callers.
             DomainException domainRule => (StatusCodes.Status400BadRequest, domainRule.Message),
+
+            // Malformed or oversized requests detected by the server (for example 413 above the body size limit).
+            BadHttpRequestException badRequest => (badRequest.StatusCode, badRequest.Message),
             _ => (StatusCodes.Status500InternalServerError, null),
         };
 

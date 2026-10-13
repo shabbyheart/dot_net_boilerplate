@@ -21,7 +21,7 @@ the decision, the reasoning and the trade-offs.
 | [0005](0005-data-access-through-iappdbcontext.md) | Data access through `IAppDbContext`; no repositories or Specification pattern | Accepted | M3 |
 | [0006](0006-error-handling-problem-details.md) | Error handling and the ProblemDetails contract | Accepted | M1 |
 | [0007](0007-configuration-and-secrets.md) | Configuration and secrets | Accepted | M1 |
-| [0008](0008-logging-and-observability.md) | Logging and observability | Accepted (tracing and metrics to be superseded before M10) | M1 |
+| [0008](0008-logging-and-observability.md) | Logging and observability | Accepted (tracing and metrics superseded by 0023) | M1 |
 | [0009](0009-database-provider.md) | Database provider (PostgreSQL) | Accepted | M2 |
 | [0010](0010-tenancy-model.md) | Tenancy model (always multi-tenant, shared schema) | Accepted | M3 |
 | [0011](0011-persistence-transactions-and-side-effects.md) | Persistence, transactions and side effects | Accepted | M3 |
@@ -36,6 +36,8 @@ the decision, the reasoning and the trade-offs.
 | [0020](0020-api-style-and-versioning.md) | API style (controllers) and versioning (`/api/v1`) | Accepted | M5 |
 | [0021](0021-pagination.md) | Pagination of list endpoints | Accepted | M4 |
 | [0022](0022-role-administration-and-bootstrap.md) | Role administration, administrator role and tenant bootstrap | Accepted | M7 |
+| [0023](0023-tracing-and-metrics.md) | Tracing and metrics (OpenTelemetry, OTLP) | Accepted | M10 |
+| [0024](0024-http-hardening.md) | HTTP hardening and operational behaviour | Accepted (assumes TLS at a proxy) | M10 |
 
 ## Template
 

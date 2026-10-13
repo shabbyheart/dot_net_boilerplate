@@ -112,6 +112,14 @@ jobs:
             echo "API endpoints must require a token (got ${me})."
             exit 1
           fi
+          # ADR-0024: security headers on every response.
+          headers="$(curl --silent --dump-header - --output /dev/null http://localhost:8080/health/live)"
+          for header in "X-Content-Type-Options: nosniff" "X-Frame-Options: DENY" "Content-Security-Policy: default-src 'none'"; do
+            if ! printf '%s' "${headers}" | grep -qi "${header}"; then
+              echo "Missing security header: ${header}"
+              exit 1
+            fi
+          done
 
       - name: Show API container logs and remove it
         if: always()
@@ -119,13 +127,29 @@ jobs:
           docker logs api || true
           docker rm --force api || true
 
-      - name: Compose stack starts and is healthy
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Compose stack starts, migrations are applied, and the API is ready
         run: |
-          printf 'POSTGRES_PASSWORD=%s\n' "$(openssl rand -hex 16)" > deploy/.env
+          password="$(openssl rand -hex 16)"
+          printf 'POSTGRES_PASSWORD=%s\n' "${password}" > deploy/.env
           docker compose --file deploy/compose.yaml up --detach --build --wait --wait-timeout 180
           curl --fail --silent --show-error --retry 30 --retry-delay 1 --retry-all-errors http://localhost:8080/health/live
           echo
-          # Ready means the API reached PostgreSQL through its configured connection string.
+          # Not ready before migrations (ADR-0024): the schema must match the code.
+          before="$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 30 http://localhost:8080/health/ready)"
+          if [ "${before}" != "503" ]; then
+            echo "Readiness must fail while migrations are pending (got ${before})."
+            exit 1
+          fi
+          # Migrations run as a separate deployment step (ADR-0011), as in a real deployment.
+          dotnet tool restore
+          dotnet restore src/Boilerplate.Infrastructure
+          Database__ConnectionString="Host=localhost;Port=5432;Database=boilerplate;Username=boilerplate;Password=${password}" \
+            dotnet ef database update --project src/Boilerplate.Infrastructure
+          # Ready means the API reached PostgreSQL and every migration is applied.
           curl --fail --silent --show-error --retry 30 --retry-delay 1 --retry-all-errors http://localhost:8080/health/ready
           echo
           docker compose --file deploy/compose.yaml exec -T db pg_isready -U boilerplate -d boilerplate
