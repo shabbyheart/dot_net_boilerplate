@@ -33,11 +33,25 @@ services:
       # Token issuer (ADR-0016). The placeholder lets the stack start; set AUTH_AUTHORITY to accept real tokens.
       Authentication__Schemes__Bearer__Authority: ${AUTH_AUTHORITY:-https://issuer.invalid}
       Authentication__Schemes__Bearer__ValidAudiences__0: ${AUTH_AUDIENCE:-boilerplate-api}
+      # E-mail goes to Mailpit, which captures it instead of delivering it (ADR-0019). UI: http://localhost:8025
+      Email__Smtp__Host: mailpit
+      Email__Smtp__Port: "1025"
+      Email__Smtp__Security: None
+      Email__Smtp__FromAddress: noreply@boilerplate.local
+      Email__Smtp__FromName: Boilerplate
     depends_on:
       db:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     ports:
       - "127.0.0.1:${API_PORT:-8080}:8080"
+
+  mailpit:
+    image: axllent/mailpit:v1.31.5
+    ports:
+      - "127.0.0.1:${MAILPIT_SMTP_PORT:-1025}:1025"
+      - "127.0.0.1:${MAILPIT_UI_PORT:-8025}:8025"
 
 volumes:
   db-data:

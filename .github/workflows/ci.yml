@@ -86,11 +86,13 @@ jobs:
         run: |
           # A syntactically valid connection string to a database that does not exist:
           # the API must start (liveness) but report not ready.
-          # Authentication settings are required to start; this issuer is never contacted because no token is sent.
+          # Authentication and e-mail settings are required to start; neither service is contacted here.
           docker run --detach --name api --publish 8080:8080 \
             --env "Database__ConnectionString=Host=127.0.0.1;Port=1;Database=none;Username=none;Password=none;Timeout=3" \
             --env "Authentication__Schemes__Bearer__Authority=https://issuer.example" \
             --env "Authentication__Schemes__Bearer__ValidAudiences__0=boilerplate-api" \
+            --env "Email__Smtp__Host=smtp.invalid" \
+            --env "Email__Smtp__FromAddress=noreply@boilerplate.local" \
             boilerplate-api:ci
           curl --fail --silent --show-error --retry 30 --retry-delay 1 --retry-all-errors http://localhost:8080/health/live
           echo

@@ -1,5 +1,6 @@
 using System.Reflection;
 using Boilerplate.Application.Common.Exceptions;
+using Boilerplate.Application.Common.Messaging;
 using Boilerplate.Application.Common.Persistence;
 using Boilerplate.Application.Common.Tenancy;
 using Boilerplate.Domain.Authorization;
@@ -44,6 +45,8 @@ public class AppDbContext : DbContext, IAppDbContext
     public DbSet<RoleAssignment> RoleAssignments => Set<RoleAssignment>();
 
     public DbSet<Project> Projects => Set<Project>();
+
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     // Read by the tenant query filter. EF Core evaluates it for each query against the current context instance.
     private Guid? CurrentTenantId => _tenantContext.TenantId;

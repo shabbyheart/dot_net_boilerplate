@@ -18,6 +18,8 @@ public sealed class StartupFailureTests
         "",
         "Authentication:Schemes:Bearer needs either Authority, or ValidIssuer together with SigningKeys.")]
     [InlineData("Authentication__Schemes__Bearer__ValidAudiences__0", "", "Authentication:Schemes:Bearer:ValidAudiences is required.")]
+    [InlineData("Email__Smtp__FromAddress", "", "The FromAddress field is required.")]
+    [InlineData("Outbox__BatchSize", "0", "The field BatchSize must be between 1 and 500.")]
     public async Task Host_exits_with_code_1_when_configuration_is_invalid(string setting, string value, string expectedReason)
     {
         // A valid baseline, so the setting under test is the only reason for the failure.
@@ -28,6 +30,8 @@ public sealed class StartupFailureTests
             ["Database__ConnectionString"] = ValidConnectionString,
             ["Authentication__Schemes__Bearer__Authority"] = "https://issuer.example",
             ["Authentication__Schemes__Bearer__ValidAudiences__0"] = TestTokens.Audience,
+            ["Email__Smtp__Host"] = "smtp.invalid",
+            ["Email__Smtp__FromAddress"] = "noreply@tests.boilerplate.local",
         };
         environment[setting] = value;
 

@@ -123,6 +123,14 @@ The rules in [docs/architecture.md](docs/architecture.md) are enforced by `Boile
   permission they do not hold. Use `ForbiddenException` (403) for such refusals.
 - Work without an HTTP user (commands, background jobs) sets the tenant with `TenantOverride`, never by faking claims.
 
+## Side effects and e-mail (ADR-0019)
+
+- Handlers never call external services directly. Enqueue a message with `Outbox.Enqueue(...)` and save once; the
+  dispatcher delivers it after commit.
+- Message handlers (`IOutboxMessageHandler<T>`) must be idempotent: delivery is at least once. Use `context.MessageId`.
+- Message type names passed to `AddOutboxMessage` are stored in the database: never rename them.
+- Never log message payloads or e-mail bodies; they can contain links and one-time codes.
+
 ## Tenancy (ADR-0010)
 
 - Data that belongs to a customer implements `ITenantOwned`. The query filter, foreign key, index and

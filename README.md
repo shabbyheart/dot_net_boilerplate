@@ -3,14 +3,15 @@
 A reusable ASP.NET Core backend foundation: four projects (Domain, Application, Infrastructure, Api)
 with vertical feature slices, enforced dependency rules, and tests from the first commit.
 
-Status: **M7, role administration.** The API has structured logging, a ProblemDetails error contract, liveness
+Status: **M9, outbox and e-mail.** The API has structured logging, a ProblemDetails error contract, liveness
 and readiness probes, and (in Development) an OpenAPI document. Every endpoint requires a valid JWT bearer token
 unless it is explicitly anonymous, and endpoints can require permissions granted through tenant-scoped roles,
 checked on every request so revocation is immediate. Roles are administered over HTTP with an escalation guard,
 and a one-off `bootstrap` command creates a tenant and its first administrator. It stores data in PostgreSQL
-through EF Core, with tenant isolation driven by the token's `tenant_id` claim. A small `projects` feature shows
-how every feature is built ([how to add a feature](docs/how-to-add-a-feature.md)). It ships as a non-root container
-image, and a compose stack runs it locally with PostgreSQL.
+through EF Core, with tenant isolation driven by the token's `tenant_id` claim. Side effects such as e-mail go
+through a transactional outbox and are delivered by a background dispatcher over SMTP. A small `projects` feature
+shows how every feature is built ([how to add a feature](docs/how-to-add-a-feature.md)). It ships as a non-root
+container image, and a compose stack runs it locally with PostgreSQL and Mailpit.
 
 ## Requirements
 
@@ -76,6 +77,7 @@ dotnet ef migrations add <Name> --project src/Boilerplate.Infrastructure --outpu
 docker build -f deploy/Dockerfile -t boilerplate-api .
 
 # Local stack: PostgreSQL 18 + API (Development settings, Scalar at http://localhost:8080/scalar)
+# + Mailpit, which captures all e-mail (UI at http://localhost:8025)
 cp deploy/.env.example deploy/.env                # then set POSTGRES_PASSWORD
 docker compose -f deploy/compose.yaml up -d --build
 docker compose -f deploy/compose.yaml down        # add --volumes to delete the database
@@ -119,6 +121,12 @@ CI scans the full git history with gitleaks.
 | Setting | Required | Source |
 |---|---|---|
 | `Database:ConnectionString` (`Database__ConnectionString`) | Yes; startup fails without it | User secrets or environment variable. In the container add `GSS Encryption Mode=Disable` unless you use Kerberos: the chiseled image has no Kerberos library |
+| `Email:Smtp:Host`, `Email:Smtp:FromAddress` | Yes; startup fails without them | Configuration. Also `Port` (587), `Security` (`StartTls`; `None` only for Mailpit), `FromName` |
+| `Email:Smtp:Username`, `Email:Smtp:Password` | If the server requires them | User secrets or environment variables |
+| `Outbox:Enabled`, `PollingInterval`, `BatchSize`, `Lease`, `MaxAttempts` | No (defaults: on, 5 s, 20, 5 min, 8) | Configuration ([ADR-0019](docs/adr/0019-outbox-and-email.md)) |
+
+For `dotnet run`, point `Email:Smtp` at Mailpit (`docker compose -f deploy/compose.yaml up -d mailpit`): host
+`localhost`, port `1025`, security `None`.
 | `Authentication:Schemes:Bearer:ValidAudiences` | Yes; startup fails without it | Configuration or environment variable |
 | `Authentication:Schemes:Bearer:Authority`, or `ValidIssuer` with `SigningKeys` | Yes; startup fails without one | Configuration; signing keys only in user secrets (development) |
 

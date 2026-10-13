@@ -1,4 +1,7 @@
+using Boilerplate.Application.Common.Email;
 using Boilerplate.Application.Common.Persistence;
+using Boilerplate.Infrastructure.Email;
+using Boilerplate.Infrastructure.Messaging;
 using Boilerplate.Infrastructure.Persistence;
 using Boilerplate.Infrastructure.Persistence.Interceptors;
 using Microsoft.EntityFrameworkCore;
@@ -45,6 +48,21 @@ public static class DependencyInjection
         services.Configure<HealthCheckServiceOptions>(options =>
             options.Registrations.Single(registration => registration.Name == DatabaseHealthCheckName).Timeout =
                 DatabaseHealthCheckTimeout);
+
+        // Outbox dispatch (ADR-0019). The processor is a singleton; it opens a scope per message.
+        services.AddOptions<OutboxOptions>()
+            .BindConfiguration(OutboxOptions.SectionName)
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+        services.AddSingleton<OutboxProcessor>();
+        services.AddHostedService<OutboxDispatcher>();
+
+        // E-mail (ADR-0019).
+        services.AddOptions<SmtpOptions>()
+            .BindConfiguration(SmtpOptions.SectionName)
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+        services.AddScoped<IEmailSender, MailKitEmailSender>();
 
         return services;
     }

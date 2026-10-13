@@ -1,3 +1,4 @@
+using Boilerplate.Application.Common.Messaging;
 using Boilerplate.Domain.Authorization;
 using Boilerplate.Domain.Projects;
 using Boilerplate.Domain.Tenants;
@@ -18,6 +19,8 @@ public interface IAppDbContext
     DbSet<RoleAssignment> RoleAssignments { get; }
 
     DbSet<Project> Projects { get; }
+
+    DbSet<OutboxMessage> OutboxMessages { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
