@@ -67,6 +67,9 @@ try
     builder.Services.AddApplication();
     builder.Services.AddInfrastructure();
 
+    // Optional local accounts (ADR-0025): the bearer scheme also accepts the API's own tokens when enabled.
+    builder.Services.AddLocalAccountTokens();
+
     // Operational hardening: tracing and metrics (ADR-0023), proxies, headers, CORS, rate limits (ADR-0024).
     builder.Services.AddApiObservability(builder.Configuration);
     builder.Services.AddApiHardening(builder.Configuration);

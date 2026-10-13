@@ -4,7 +4,7 @@ namespace Boilerplate.Domain.Authorization;
 
 /// <summary>
 /// Gives a user a role within one tenant (ADR-0017). The user is identified by the token's subject (ADR-0016),
-/// because users live in the identity provider, not in this database.
+/// because users live in the identity provider: an external one, or the optional local accounts (ADR-0025).
 /// </summary>
 public sealed class RoleAssignment : Entity, IAuditable, ITenantOwned
 {

@@ -106,7 +106,8 @@ The rules in [docs/architecture.md](docs/architecture.md) are enforced by `Boile
 - HTTP endpoints are MVC controllers in `src/Boilerplate.Api/Controllers`, routes under `/api/v1`, `[ApiController]`.
   Controllers stay thin: bind, call one Application handler, return the result.
 - Every endpoint requires an authenticated user with a `sub` claim (fallback policy). Do not add `[AllowAnonymous]`
-  or `.AllowAnonymous()` without a reason recorded in an ADR; today only health checks and Development documentation allow it.
+  or `.AllowAnonymous()` without a reason recorded in an ADR; today only health checks, Development documentation and
+  the local account endpoints (ADR-0025) allow it.
 - Use `ICurrentUser` for the caller and `ITenantContext` for the tenant. Never read claims or `HttpContext` in Application code.
 - Never weaken token validation (issuer, audience, lifetime, signature) or add custom JWT parsing.
 
@@ -122,6 +123,15 @@ The rules in [docs/architecture.md](docs/architecture.md) are enforced by `Boile
 - Role administration must go through `RoleEscalationGuard`; never let a caller grant, remove or hand out a
   permission they do not hold. Use `ForbiddenException` (403) for such refusals.
 - Work without an HTTP user (commands, background jobs) sets the tenant with `TenantOverride`, never by faking claims.
+
+## Local accounts (ADR-0025)
+
+- Account code goes through `IUserAccounts`; never use `UserManager` or Identity types outside Infrastructure.
+- Identity must not save on its own: keep `UnitOfWorkUserStore`, and let the use case call `SaveChangesAsync` once.
+- Store only hashes of tokens handed to clients (`SecureToken.Hash`). Never log tokens, passwords or account e-mails.
+- Responses must not reveal whether an address is registered: same status and message for unknown, wrong and locked.
+- Account endpoints keep `[RequireAccountsEnabled]` and the `accounts` rate-limit policy. Do not lengthen token
+  lifetimes or weaken lockout and password rules without a superseding ADR.
 
 ## Operations (ADR-0023, ADR-0024)
 
@@ -148,7 +158,8 @@ The rules in [docs/architecture.md](docs/architecture.md) are enforced by `Boile
 - Data that belongs to a customer implements `ITenantOwned`. The query filter, foreign key, index and
   write checks are applied automatically; do not filter by tenant in handlers and never set `TenantId` yourself.
 - Unique constraints on tenant-owned data start with `TenantId` (`HasIndex(x => new { x.TenantId, x.Name }).IsUnique()`).
-- Do not call `IgnoreQueryFilters()` outside a reviewed platform-administration path.
+- Do not call `IgnoreQueryFilters()` outside a reviewed path. The reviewed paths are platform administration and the
+  sign-in membership check (`AccountQueries.IsTenantMemberAsync`, ADR-0025), which names the tenant explicitly.
 - Raw SQL on tenant-owned tables belongs in Infrastructure, takes the tenant id as a parameter, and needs a cross-tenant test.
 - Every new tenant-owned entity needs isolation tests like `TenantIsolationTests` (reads, writes, bulk operations).
 

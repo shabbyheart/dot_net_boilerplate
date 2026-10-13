@@ -100,6 +100,27 @@ startup is logged and exits with code 1 (ADR-0007). Startup also fails without v
 | `AuthenticationRegistration`, `JwtBearerSettingsValidation` | Api | JWT bearer setup, deny-by-default policy, startup validation of token settings |
 | `MeController` | Api | `GET /api/v1/me`: the identity the API resolved from the caller's token |
 
+### Local accounts (optional, ADR-0025)
+
+```mermaid
+flowchart LR
+  C["AccountController (Api)"] --> H["Login/Refresh/... handlers (Application)"]
+  H -->|IUserAccounts| U["IdentityUserAccounts → UserManager + UnitOfWorkUserStore (Infrastructure)"]
+  H -->|IAccessTokenIssuer| J["JwtAccessTokenIssuer (Infrastructure)"]
+  H -->|"IAppDbContext: refresh_tokens, one_time_tokens"| DB[(PostgreSQL)]
+  H -->|Outbox| E["confirmation and reset e-mails"]
+  J -.->|"same issuer, audience, keys"| V["LocalAccountTokenRegistration → JWT bearer validation"]
+```
+
+| Piece | Project | Responsibility |
+|---|---|---|
+| `RefreshToken`, `OneTimeToken` | Domain | Rotation and reuse rules; single-use e-mailed tokens. Only hashes are stored |
+| `Features/Accounts`, `AccountSessions`, `OneTimeTokens` | Application | Use cases, token pairs and family revocation, issuing and redeeming e-mailed tokens |
+| `IUserAccounts`, `IAccessTokenIssuer`, `AccountSettings` | Application | Ports and settings |
+| `ApplicationUser`, `IdentityUserAccounts`, `UnitOfWorkUserStore` | Infrastructure | Identity Core users, password hashing, lockout; the store never saves on its own |
+| `JwtAccessTokenIssuer`, `AccessTokenOptions` | Infrastructure | HMAC-SHA256 access tokens, current and previous signing keys |
+| `AccountController`, `RequireAccountsEnabledAttribute`, `LocalAccountTokenRegistration` | Api | Endpoints (404 unless enabled), per-IP rate limit, local tokens accepted by the bearer scheme |
+
 ## Authorization
 
 ```mermaid

@@ -10,7 +10,7 @@ namespace Boilerplate.Api.Tenancy;
 internal sealed class ClaimsTenantContext(IHttpContextAccessor httpContextAccessor, TenantOverride tenantOverride)
     : ITenantContext
 {
-    public const string TenantIdClaimType = "tenant_id";
+    public const string TenantIdClaimType = TenantClaim.Type;
 
     public Guid? TenantId
     {

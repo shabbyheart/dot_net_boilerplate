@@ -10,10 +10,10 @@ internal sealed class IsolationTestDbContext(DbContextOptions<IsolationTestDbCon
 {
     public DbSet<TestNote> Notes => Set<TestNote>();
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    protected override void OnModelCreating(ModelBuilder builder)
     {
         // Added before base.OnModelCreating so the tenancy conventions apply to it.
-        modelBuilder.Entity<TestNote>(note =>
+        builder.Entity<TestNote>(note =>
         {
             note.Property(n => n.Title).HasMaxLength(TestNote.TitleMaxLength);
 
@@ -21,6 +21,6 @@ internal sealed class IsolationTestDbContext(DbContextOptions<IsolationTestDbCon
             note.HasIndex(n => new { n.TenantId, n.Title }).IsUnique();
         });
 
-        base.OnModelCreating(modelBuilder);
+        base.OnModelCreating(builder);
     }
 }

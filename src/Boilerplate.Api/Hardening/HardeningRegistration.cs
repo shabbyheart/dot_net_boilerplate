@@ -15,6 +15,9 @@ namespace Boilerplate.Api.Hardening;
 /// </summary>
 internal static class HardeningRegistration
 {
+    /// <summary>The stricter per-IP limit for account endpoints (ADR-0025).</summary>
+    public const string AccountsRateLimitPolicy = "accounts";
+
     private const string HealthPathPrefix = "/health";
 
     public static IServiceCollection AddApiHardening(this IServiceCollection services, IConfiguration configuration)
@@ -109,6 +112,16 @@ internal static class HardeningRegistration
                 QueueLimit = 0,
             });
         });
+
+        // Account requests are anonymous, so the budget is per client IP.
+        options.AddPolicy(AccountsRateLimitPolicy, context => RateLimitPartition.GetFixedWindowLimiter(
+            $"ip:{context.Connection.RemoteIpAddress}",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = settings.Value.AccountsPermitLimit,
+                Window = settings.Value.AccountsWindow,
+                QueueLimit = 0,
+            }));
 
         options.OnRejected = async (context, cancellationToken) =>
         {

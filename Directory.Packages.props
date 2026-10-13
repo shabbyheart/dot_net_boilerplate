@@ -46,6 +46,12 @@
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.12" />
   </ItemGroup>
 
+  <ItemGroup Label="Local accounts">
+    <!-- ADR-0025: Identity Core user store and password hashing; token creation with the library JwtBearer validates with. -->
+    <PackageVersion Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.IdentityModel.JsonWebTokens" Version="8.19.2" />
+  </ItemGroup>
+
   <ItemGroup Label="E-mail">
     <!-- ADR-0019 -->
     <PackageVersion Include="MailKit" Version="4.18.1" />
