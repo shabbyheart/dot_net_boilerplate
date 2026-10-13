@@ -82,11 +82,20 @@ jobs:
             exit 1
           fi
 
-      - name: Smoke test the image (Production environment)
+      - name: Smoke test the image (Production environment, no database)
         run: |
-          docker run --detach --name api --publish 8080:8080 boilerplate-api:ci
+          # A syntactically valid connection string to a database that does not exist:
+          # the API must start (liveness) but report not ready.
+          docker run --detach --name api --publish 8080:8080 \
+            --env "Database__ConnectionString=Host=127.0.0.1;Port=1;Database=none;Username=none;Password=none;Timeout=3" \
+            boilerplate-api:ci
           curl --fail --silent --show-error --retry 30 --retry-delay 1 --retry-all-errors http://localhost:8080/health/live
           echo
+          ready="$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 60 http://localhost:8080/health/ready)"
+          if [ "${ready}" != "503" ]; then
+            echo "Readiness must fail without a database (got ${ready})."
+            exit 1
+          fi
           status="$(curl --silent --output /dev/null --write-out '%{http_code}' http://localhost:8080/openapi/v1.json)"
           if [ "${status}" != "404" ]; then
             echo "OpenAPI must not be exposed outside Development (got ${status})."
@@ -104,6 +113,9 @@ jobs:
           printf 'POSTGRES_PASSWORD=%s\n' "$(openssl rand -hex 16)" > deploy/.env
           docker compose --file deploy/compose.yaml up --detach --build --wait --wait-timeout 180
           curl --fail --silent --show-error --retry 30 --retry-delay 1 --retry-all-errors http://localhost:8080/health/live
+          echo
+          # Ready means the API reached PostgreSQL through its configured connection string.
+          curl --fail --silent --show-error --retry 30 --retry-delay 1 --retry-all-errors http://localhost:8080/health/ready
           echo
           docker compose --file deploy/compose.yaml exec -T db pg_isready -U boilerplate -d boilerplate
 

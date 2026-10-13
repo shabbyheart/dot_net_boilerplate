@@ -51,7 +51,7 @@ HTTP -> exception handler -> authentication -> authorization -> endpoint
 Failures -> typed exceptions -> ProblemDetails (RFC 9457) with traceId
 ```
 
-### Current pipeline (M1), in `src/Boilerplate.Api/Program.cs`
+### Current pipeline, in `src/Boilerplate.Api/Program.cs`
 
 | Order | Component | Why here |
 |---|---|---|
@@ -60,6 +60,31 @@ Failures -> typed exceptions -> ProblemDetails (RFC 9457) with traceId
 | 3 | `UseStatusCodePages` | Gives body-less error responses (for example unknown routes) a ProblemDetails body |
 | 4 | OpenAPI + Scalar (Development only) | Documentation endpoints (ADR-0013) |
 | 5 | `/health/live` | Liveness probe; runs no dependency checks |
+| 6 | `/health/ready` | Readiness probe; checks the database (health checks tagged `ready`) |
 
 The service provider validates registrations at startup (`ValidateOnBuild`, `ValidateScopes`), and a failed
 startup is logged and exits with code 1 (ADR-0007).
+
+## Persistence and tenancy
+
+```mermaid
+flowchart LR
+  Handler["Handler (Application)"] -->|IAppDbContext| Ctx["AppDbContext (Infrastructure)"]
+  Ctx -->|query filter 'Tenant'| PG[(PostgreSQL)]
+  Ctx --> I1[AuditTimestampsInterceptor]
+  Ctx --> I2[TenantStampingInterceptor]
+  I1 -->|TimeProvider| Clock[Clock]
+  I2 -->|ITenantContext| Tenant["ClaimsTenantContext (Api): tenant_id claim"]
+```
+
+| Piece | Project | Responsibility |
+|---|---|---|
+| `Entity`, `IAuditable`, `ITenantOwned`, `Tenant` | Domain | Identity (GUID v7), audit and tenancy markers, the tenant entity |
+| `IAppDbContext`, `ITenantContext` | Application | Ports used by handlers and by persistence |
+| `AppDbContext` | Infrastructure | Model, configurations, and automatic tenancy rules for every `ITenantOwned` entity |
+| `AuditTimestampsInterceptor`, `TenantStampingInterceptor` | Infrastructure | Timestamps on save; tenant stamping and cross-tenant write rejection |
+| `DependencyInjection.AddInfrastructure` | Infrastructure | Options, provider, interceptors, health check; `ConfigureDbContext` is the single wiring point |
+| `ClaimsTenantContext` | Api | Current tenant from the `tenant_id` claim (none until authentication, M5) |
+
+Without a current tenant, tenant-owned reads return no rows and writes throw (fail closed). Details and known
+gaps (raw SQL, caches, background jobs) are in [ADR-0010](adr/0010-tenancy-model.md).

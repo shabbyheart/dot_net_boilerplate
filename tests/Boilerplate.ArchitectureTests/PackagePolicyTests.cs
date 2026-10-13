@@ -51,8 +51,15 @@ public sealed class PackagePolicyTests
     }
 
     // Each allowlist entry must point to the ADR that approved it.
-    // ADR-0001: abstractions-only Microsoft.Extensions packages (options, logging, DI abstractions).
-    private static bool IsAllowedInApplication(string package) =>
-        package.StartsWith("Microsoft.Extensions.", StringComparison.OrdinalIgnoreCase)
+    private static bool IsAllowedInApplication(string package)
+    {
+        // ADR-0001: abstractions-only Microsoft.Extensions packages (options, logging, DI abstractions).
+        var isExtensionsAbstractions = package.StartsWith("Microsoft.Extensions.", StringComparison.OrdinalIgnoreCase)
             && package.EndsWith(".Abstractions", StringComparison.OrdinalIgnoreCase);
+
+        // ADR-0005: EF Core itself for DbSet<T>; never a provider or the relational package.
+        var isEntityFrameworkCore = package.Equals("Microsoft.EntityFrameworkCore", StringComparison.OrdinalIgnoreCase);
+
+        return isExtensionsAbstractions || isEntityFrameworkCore;
+    }
 }
