@@ -21,6 +21,9 @@ internal sealed class OneTimeTokenConfiguration : IEntityTypeConfiguration<OneTi
         builder.HasIndex(token => token.TokenHash).IsUnique();
         builder.HasIndex(token => new { token.UserId, token.Purpose });
 
+        // Retention cleanup of expired tokens (ADR-0026).
+        builder.HasIndex(token => token.ExpiresAt);
+
         // PostgreSQL's xmin as a concurrency token: a token cannot be redeemed twice by concurrent requests.
         builder.Property<uint>("Version").IsRowVersion();
     }

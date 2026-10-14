@@ -152,6 +152,8 @@ The rules in [docs/architecture.md](docs/architecture.md) are enforced by `Boile
 - Message handlers (`IOutboxMessageHandler<T>`) must be idempotent: delivery is at least once. Use `context.MessageId`.
 - Message type names passed to `AddOutboxMessage` are stored in the database: never rename them.
 - Never log message payloads or e-mail bodies; they can contain links and one-time codes.
+- Data with a lifetime (tokens, delivered messages) is removed by `HousekeepingCleaner` (ADR-0026). A new table that
+  grows without bound gets an index on its expiry column and a batched delete there, not a new scheduler.
 
 ## Tenancy (ADR-0010)
 

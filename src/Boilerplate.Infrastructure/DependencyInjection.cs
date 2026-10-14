@@ -3,6 +3,7 @@ using Boilerplate.Application.Common.Persistence;
 using Boilerplate.Application.Features.Accounts;
 using Boilerplate.Infrastructure.Accounts;
 using Boilerplate.Infrastructure.Email;
+using Boilerplate.Infrastructure.Housekeeping;
 using Boilerplate.Infrastructure.Messaging;
 using Boilerplate.Infrastructure.Persistence;
 using Boilerplate.Infrastructure.Persistence.Interceptors;
@@ -67,6 +68,14 @@ public static class DependencyInjection
             .ValidateOnStart();
         services.AddSingleton<OutboxProcessor>();
         services.AddHostedService<OutboxDispatcher>();
+
+        // Retention cleanup (ADR-0026).
+        services.AddOptions<HousekeepingOptions>()
+            .BindConfiguration(HousekeepingOptions.SectionName)
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+        services.AddSingleton<HousekeepingCleaner>();
+        services.AddHostedService<HousekeepingService>();
 
         // E-mail (ADR-0019).
         services.AddOptions<SmtpOptions>()

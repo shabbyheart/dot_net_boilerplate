@@ -24,6 +24,9 @@ internal sealed class RefreshTokenConfiguration : IEntityTypeConfiguration<Refre
         builder.HasIndex(token => token.FamilyId);
         builder.HasIndex(token => token.UserId);
 
+        // Retention cleanup of expired tokens (ADR-0026).
+        builder.HasIndex(token => token.ExpiresAt);
+
         builder.HasOne<Tenant>().WithMany().HasForeignKey(token => token.TenantId).OnDelete(DeleteBehavior.Restrict);
 
         // PostgreSQL's xmin as a concurrency token: two refreshes with the same token cannot both succeed.

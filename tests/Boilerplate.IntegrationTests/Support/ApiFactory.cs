@@ -22,6 +22,9 @@ public sealed class ApiFactory(PostgresFixture postgres) : WebApplicationFactory
 
                 // Test hosts share one database; only tests that exercise the dispatcher turn it on (OutboxDispatchTests).
                 ["Outbox:Enabled"] = "false",
+
+                // Deletes rows by age across the shared database; HousekeepingTests turn it on against their own.
+                ["Housekeeping:Enabled"] = "false",
             })
             .AddInMemoryCollection(PersistenceServices.UnusedSmtpSettings)
             .AddInMemoryCollection(TestTokens.ApiSettings));

@@ -19,5 +19,10 @@ internal sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<Outb
         builder.HasIndex(message => message.AvailableAt)
             .HasFilter("processed_at IS NULL AND dead_lettered_at IS NULL")
             .HasDatabaseName("ix_outbox_messages_pending");
+
+        // Serves retention cleanup of delivered messages (ADR-0026); pending rows are not indexed.
+        builder.HasIndex(message => message.ProcessedAt)
+            .HasFilter("processed_at IS NOT NULL")
+            .HasDatabaseName("ix_outbox_messages_processed");
     }
 }
