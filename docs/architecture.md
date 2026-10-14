@@ -191,3 +191,10 @@ flowchart LR
 | `MailKitEmailSender`, `SmtpOptions` | Infrastructure | SMTP delivery; the outbox id becomes the `Message-ID` |
 
 No database transaction is held while a handler calls an external service; delivery is at least once.
+
+## Housekeeping (ADR-0026)
+
+`HousekeepingService` (hosted service, Infrastructure) runs `HousekeepingCleaner` at startup and then on a timer.
+Each round deletes, in bounded batches, refresh and one-time tokens that expired more than the retention ago and
+outbox messages delivered more than the retention ago. Pending and dead-lettered messages are never deleted.
+Deleting is idempotent, so every instance may run it without coordination; `Housekeeping:Enabled` turns it off.

@@ -75,6 +75,10 @@ namespace Boilerplate.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_outbox_messages_pending")
                         .HasFilter("processed_at IS NULL AND dead_lettered_at IS NULL");
 
+                    b.HasIndex("ProcessedAt")
+                        .HasDatabaseName("ix_outbox_messages_processed")
+                        .HasFilter("processed_at IS NOT NULL");
+
                     b.ToTable("outbox_messages", (string)null);
                 });
 
@@ -122,6 +126,9 @@ namespace Boilerplate.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_one_time_tokens");
+
+                    b.HasIndex("ExpiresAt")
+                        .HasDatabaseName("ix_one_time_tokens_expires_at");
 
                     b.HasIndex("TokenHash")
                         .IsUnique()
@@ -183,6 +190,9 @@ namespace Boilerplate.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_refresh_tokens");
+
+                    b.HasIndex("ExpiresAt")
+                        .HasDatabaseName("ix_refresh_tokens_expires_at");
 
                     b.HasIndex("FamilyId")
                         .HasDatabaseName("ix_refresh_tokens_family_id");

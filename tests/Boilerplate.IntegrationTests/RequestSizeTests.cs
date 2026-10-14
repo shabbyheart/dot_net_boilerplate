@@ -25,6 +25,7 @@ public sealed class RequestSizeTests(PostgresFixture postgres) : IAsyncDisposabl
         {
             ["Database:ConnectionString"] = postgres.ConnectionString,
             ["Outbox:Enabled"] = "false",
+            ["Housekeeping:Enabled"] = "false",
         };
         foreach (var (key, value) in PersistenceServices.UnusedSmtpSettings)
         {
