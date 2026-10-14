@@ -1,4 +1,5 @@
 using Boilerplate.Application.Common.Persistence;
+using Boilerplate.Application.Common.Security;
 using Microsoft.EntityFrameworkCore;
 
 namespace Boilerplate.Application.Features.Accounts.Logout;
