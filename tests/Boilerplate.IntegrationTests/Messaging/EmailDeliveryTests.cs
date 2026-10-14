@@ -10,8 +10,12 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Boilerplate.IntegrationTests.Messaging;
 
 /// <summary>E-mail over real SMTP (Mailpit), directly and through the running outbox dispatcher (ADR-0019).</summary>
-public sealed class EmailDeliveryTests(ApiFactory factory, MailpitFixture mailpit, PostgresFixture postgres)
-    : IClassFixture<ApiFactory>, IClassFixture<MailpitFixture>
+public sealed class EmailDeliveryTests(
+    ApiFactory factory,
+    MailpitFixture mailpit,
+    PostgresFixture postgres,
+    EmailDispatchDatabase dispatchDatabase)
+    : IClassFixture<ApiFactory>, IClassFixture<MailpitFixture>, IClassFixture<EmailDispatchDatabase>
 {
     private readonly CancellationToken _cancellationToken = TestContext.Current.CancellationToken;
 
@@ -41,6 +45,8 @@ public sealed class EmailDeliveryTests(ApiFactory factory, MailpitFixture mailpi
                 .AddInMemoryCollection(mailpit.SmtpSettings)
                 .AddInMemoryCollection(new Dictionary<string, string?>
                 {
+                    // Its own database: the dispatcher would otherwise deliver other tests' queued e-mails.
+                    ["Database:ConnectionString"] = dispatchDatabase.ConnectionString,
                     ["Outbox:Enabled"] = "true",
                     ["Outbox:PollingInterval"] = "00:00:00.200",
                 })));
