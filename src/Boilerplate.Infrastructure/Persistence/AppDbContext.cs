@@ -48,6 +48,10 @@ public class AppDbContext : IdentityUserContext<ApplicationUser, Guid>, IAppDbCo
 
     public DbSet<RoleAssignment> RoleAssignments => Set<RoleAssignment>();
 
+    public DbSet<Invitation> Invitations => Set<Invitation>();
+
+    public DbSet<PlatformAdministrator> PlatformAdministrators => Set<PlatformAdministrator>();
+
     public DbSet<Project> Projects => Set<Project>();
 
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();

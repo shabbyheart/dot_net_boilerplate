@@ -82,6 +82,11 @@ try
         return await BootstrapCommand.RunAsync(app.Services, args, CancellationToken.None);
     }
 
+    if (PlatformAdministratorCommand.IsRequested(args))
+    {
+        return await PlatformAdministratorCommand.RunAsync(app.Services, args, CancellationToken.None);
+    }
+
     // First: everything after it must see the real client IP and scheme (only from trusted proxies).
     app.UseForwardedHeaders();
 

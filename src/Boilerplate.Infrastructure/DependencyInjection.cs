@@ -1,6 +1,7 @@
 using Boilerplate.Application.Common.Email;
 using Boilerplate.Application.Common.Persistence;
 using Boilerplate.Application.Features.Accounts;
+using Boilerplate.Application.Features.Invitations;
 using Boilerplate.Infrastructure.Accounts;
 using Boilerplate.Infrastructure.Email;
 using Boilerplate.Infrastructure.Housekeeping;
@@ -83,6 +84,13 @@ public static class DependencyInjection
             .ValidateDataAnnotations()
             .ValidateOnStart();
         services.AddScoped<IEmailSender, MailKitEmailSender>();
+
+        // Invitations (ADR-0027). Application code takes the settings object itself.
+        services.AddOptions<InvitationSettings>()
+            .BindConfiguration(InvitationSettings.SectionName)
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+        services.AddSingleton(provider => provider.GetRequiredService<IOptions<InvitationSettings>>().Value);
 
         AddAccounts(services);
 

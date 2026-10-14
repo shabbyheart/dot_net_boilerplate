@@ -2,9 +2,9 @@ using System.Buffers.Text;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Boilerplate.Application.Features.Accounts;
+namespace Boilerplate.Application.Common.Security;
 
-/// <summary>Random tokens handed to clients, and the hashes stored instead of them (ADR-0025).</summary>
+/// <summary>Random tokens handed to clients, and the hashes stored instead of them (ADR-0025, ADR-0027).</summary>
 internal static class SecureToken
 {
     /// <summary>Upper bound for a token sent back by a client; generated tokens are 43 characters.</summary>

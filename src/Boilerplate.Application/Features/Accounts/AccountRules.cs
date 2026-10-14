@@ -1,3 +1,4 @@
+using Boilerplate.Application.Common.Security;
 using FluentValidation;
 
 namespace Boilerplate.Application.Features.Accounts;

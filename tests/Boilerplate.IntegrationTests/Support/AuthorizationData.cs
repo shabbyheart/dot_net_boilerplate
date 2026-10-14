@@ -1,3 +1,4 @@
+using Boilerplate.Application.Features.PlatformAdministrators;
 using Boilerplate.Domain.Authorization;
 using Boilerplate.Domain.Tenants;
 using Boilerplate.Infrastructure.Persistence;
@@ -95,6 +96,26 @@ internal sealed class AuthorizationData(PostgresFixture postgres) : IAsyncDispos
             .SingleAsync(a => a.UserId == userId && a.RoleId == roleId, cancellationToken);
         db.RoleAssignments.Remove(assignment);
         await db.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>Grants or revokes platform administration through the same use case as the command line (ADR-0027).</summary>
+    public async Task SetPlatformAdministratorAsync(string userId, bool isAdministrator, CancellationToken cancellationToken)
+    {
+        await using var scope = _services.CreateScope(tenantId: null);
+        var grants = scope.ServiceProvider.GetRequiredService<PlatformAdministratorGrants>();
+        _ = isAdministrator
+            ? await grants.GrantAsync(userId, cancellationToken)
+            : await grants.RevokeAsync(userId, cancellationToken);
+    }
+
+    /// <summary>The user ids holding <paramref name="roleId"/> in <paramref name="tenantId"/>.</summary>
+    public async Task<string[]> AssigneesAsync(Guid tenantId, Guid roleId, CancellationToken cancellationToken)
+    {
+        await using var scope = _services.CreateScope(tenantId);
+        return await scope.ServiceProvider.GetRequiredService<AppDbContext>().RoleAssignments
+            .Where(assignment => assignment.RoleId == roleId)
+            .Select(assignment => assignment.UserId)
+            .ToArrayAsync(cancellationToken);
     }
 
     public ValueTask DisposeAsync() => _services.DisposeAsync();

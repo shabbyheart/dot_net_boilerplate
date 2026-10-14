@@ -3,6 +3,8 @@
   <ItemGroup>
     <PackageReference Include="EFCore.NamingConventions" />
     <PackageReference Include="MailKit" />
+    <!-- Security pin of a MailKit dependency; see Directory.Packages.props. -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" />
     <!-- ADR-0025 -->
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
     <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" />

@@ -20,7 +20,8 @@ public sealed class ApiFactory(PostgresFixture postgres) : WebApplicationFactory
             {
                 ["Database:ConnectionString"] = postgres.ConnectionString,
 
-                // Test hosts share one database; only tests that exercise the dispatcher turn it on (OutboxDispatchTests).
+                // Test hosts share one database. A running dispatcher would deliver (and clear) e-mails other tests read
+                // from the outbox, so EmailDeliveryTests turns it on only against a database of its own.
                 ["Outbox:Enabled"] = "false",
 
                 // Deletes rows by age across the shared database; HousekeepingTests turn it on against their own.
