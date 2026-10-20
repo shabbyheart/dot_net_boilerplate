@@ -127,6 +127,8 @@ The rules in [docs/architecture.md](docs/architecture.md) are enforced by `Boile
 - Platform endpoints use `[RequirePlatformAdministrator]`. Never add an endpoint that grants platform administration,
   and never let the platform grant open data inside tenants (ADR-0027).
 - Inviting someone to a role is handing it out: go through `RoleEscalationGuard` like role assignment.
+- Membership is derived from role assignments (ADR-0029); do not add a separate membership table. Removing a member
+  passes the escalation guard for every role they hold, and nothing may remove the tenant's last administrator.
 
 ## Local accounts (ADR-0025)
 

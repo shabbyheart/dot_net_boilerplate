@@ -5,6 +5,7 @@ using Boilerplate.Application.Common.Tenancy;
 using Boilerplate.Application.Features.Accounts;
 using Boilerplate.Application.Features.Auditing;
 using Boilerplate.Application.Features.Invitations;
+using Boilerplate.Application.Features.Members;
 using Boilerplate.Application.Features.PlatformAdministrators;
 using Boilerplate.Application.Features.Projects;
 using Boilerplate.Application.Features.Roles;
@@ -30,6 +31,7 @@ public static class DependencyInjection
         services.AddRolesFeature();
         services.AddTenantsFeature();
         services.AddInvitationsFeature();
+        services.AddMembersFeature();
         services.AddScoped<PlatformAdministratorGrants>();
         services.AddAccountsFeature();
 
