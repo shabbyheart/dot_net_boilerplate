@@ -23,10 +23,15 @@ RUN dotnet publish src/Boilerplate.Api/Boilerplate.Api.csproj \
     --output /app/publish \
     -p:UseAppHost=false
 
+# File storage directory (ADR-0030). Created here because the runtime image has no shell; a volume mounted on it
+# starts with this directory's owner, so the non-root user can write to it.
+RUN mkdir -p /app/storage
+
 # Chiseled: no shell or package manager. "extra" adds ICU and time zone data.
 FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_VERSION}-noble-chiseled-extra AS runtime
 WORKDIR /app
 COPY --from=build /app/publish .
+COPY --from=build --chown=$APP_UID:$APP_UID /app/storage /app/storage
 
 # Non-root user provided by the .NET images; the API listens on 8080 (ASPNETCORE_HTTP_PORTS).
 USER $APP_UID

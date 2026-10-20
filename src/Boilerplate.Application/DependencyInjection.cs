@@ -4,6 +4,7 @@ using Boilerplate.Application.Common.Security;
 using Boilerplate.Application.Common.Tenancy;
 using Boilerplate.Application.Features.Accounts;
 using Boilerplate.Application.Features.Auditing;
+using Boilerplate.Application.Features.Files;
 using Boilerplate.Application.Features.Invitations;
 using Boilerplate.Application.Features.Members;
 using Boilerplate.Application.Features.PlatformAdministrators;
@@ -28,6 +29,7 @@ public static class DependencyInjection
 
         services.AddAuditingFeature();
         services.AddProjectsFeature();
+        services.AddFilesFeature();
         services.AddRolesFeature();
         services.AddTenantsFeature();
         services.AddInvitationsFeature();
