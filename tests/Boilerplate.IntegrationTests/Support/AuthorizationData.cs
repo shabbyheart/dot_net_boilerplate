@@ -98,6 +98,16 @@ internal sealed class AuthorizationData(PostgresFixture postgres) : IAsyncDispos
         await db.SaveChangesAsync(cancellationToken);
     }
 
+    /// <summary>Gives <paramref name="userId"/> an existing role, for example a second administrator.</summary>
+    public async Task AssignAsync(Guid tenantId, string userId, Guid roleId, CancellationToken cancellationToken)
+    {
+        await using var scope = _services.CreateScope(tenantId, userId: "admin");
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var role = await db.Roles.SingleAsync(r => r.Id == roleId, cancellationToken);
+        db.RoleAssignments.Add(RoleAssignment.Create(userId, role));
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
     /// <summary>Grants or revokes platform administration through the same use case as the command line (ADR-0027).</summary>
     public async Task SetPlatformAdministratorAsync(string userId, bool isAdministrator, CancellationToken cancellationToken)
     {

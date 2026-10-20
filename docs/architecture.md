@@ -160,6 +160,16 @@ Anonymous → 401; authenticated without the permission or without a tenant → 
 | `Invitation` | Domain | Tenant-owned offer of a role; hashed single-use token, expiry, revocation |
 | `InvitationSender`, `Features/Invitations`, `InvitationsController` | Application, Api | Issue (escalation guard, outbox e-mail), list, revoke, accept (reviewed tenant-filter bypass by token hash) |
 
+### Tenant members (ADR-0029)
+
+A member is a user who holds at least one role in the tenant; there is no membership table.
+
+| Piece | Project | Responsibility |
+|---|---|---|
+| `Features/Members`, `MembersController` | Application, Api | `GET /api/v1/members[/{userId}]` (`roles.read`): members and their roles; `DELETE /api/v1/members/{userId}` (`roles.manage`, escalation guard per role) |
+| `LeaveTenantHandler`, `MeController` | Application, Api | `DELETE /api/v1/me/membership`: the caller gives up their roles in the token's tenant |
+| `MemberRemoval` | Application | Removes all of a user's assignments, refuses the last administrator (409), records `role.unassigned` per role |
+
 ### Audit log (ADR-0028)
 
 | Piece | Project | Responsibility |

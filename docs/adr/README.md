@@ -42,6 +42,7 @@ the decision, the reasoning and the trade-offs.
 | [0026](0026-data-retention-housekeeping.md) | Data retention and housekeeping (timed cleanup of expired tokens and delivered outbox rows) | Accepted | M11 |
 | [0027](0027-platform-administration-and-invitations.md) | Platform administration (tenants over HTTP) and invitations to tenant roles | Accepted | M12 |
 | [0028](0028-audit-log.md) | Audit log (append-only, tenant-owned, recorded in the use case's unit of work) | Accepted | M13 |
+| [0029](0029-tenant-members.md) | Tenant members (derived from role assignments; remove and leave) | Accepted | M14 |
 
 ## Template
 
