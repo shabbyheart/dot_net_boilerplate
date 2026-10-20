@@ -121,6 +121,8 @@ flowchart LR
 | `ApplicationUser`, `IdentityUserAccounts`, `UnitOfWorkUserStore` | Infrastructure | Identity Core users, password hashing, lockout; the store never saves on its own |
 | `JwtAccessTokenIssuer`, `AccessTokenOptions` | Infrastructure | HMAC-SHA256 access tokens, current and previous signing keys |
 | `AccountController`, `RequireAccountsEnabledAttribute`, `LocalAccountTokenRegistration` | Api | Endpoints (404 unless enabled), per-IP rate limit, local tokens accepted by the bearer scheme |
+| `Features/Accounts/TwoFactor`, `RecoveryCodes`, `TwoFactorController` | Application, Api | Two-factor sign-in (ADR-0031): authenticator setup, enable, disable, recovery codes (hashed); login takes `twoFactorCode` or `recoveryCode`, 401 `twoFactorRequired` without |
+| `AuthenticatorTokenProvider` (Identity) | Infrastructure | TOTP verification; keys and hashed recovery codes in `user_tokens`; the failure count resets only after both factors |
 
 ## Authorization
 

@@ -5,6 +5,7 @@ using Boilerplate.Application.Features.Accounts.Logout;
 using Boilerplate.Application.Features.Accounts.Refresh;
 using Boilerplate.Application.Features.Accounts.Register;
 using Boilerplate.Application.Features.Accounts.ResetPassword;
+using Boilerplate.Application.Features.Accounts.TwoFactor;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -29,12 +30,23 @@ public static class AccountsFeature
         services.AddScoped<ForgotPasswordHandler>();
         services.AddScoped<ResetPasswordHandler>();
 
+        // Two-factor sign-in (ADR-0031).
+        services.AddScoped<CurrentAccount>();
+        services.AddScoped<GetTwoFactorStatusHandler>();
+        services.AddScoped<SetupAuthenticatorHandler>();
+        services.AddScoped<EnableTwoFactorHandler>();
+        services.AddScoped<DisableTwoFactorHandler>();
+        services.AddScoped<RenewRecoveryCodesHandler>();
+
         services.AddScoped<IValidator<RegisterRequest>, RegisterValidator>();
         services.AddScoped<IValidator<ConfirmEmailRequest>, ConfirmEmailValidator>();
         services.AddScoped<IValidator<LoginRequest>, LoginValidator>();
         services.AddScoped<IValidator<RefreshTokenRequest>, RefreshTokenValidator>();
         services.AddScoped<IValidator<ForgotPasswordRequest>, ForgotPasswordValidator>();
         services.AddScoped<IValidator<ResetPasswordRequest>, ResetPasswordValidator>();
+        services.AddScoped<IValidator<EnableTwoFactorRequest>, EnableTwoFactorValidator>();
+        services.AddScoped<IValidator<DisableTwoFactorRequest>, DisableTwoFactorValidator>();
+        services.AddScoped<IValidator<RenewRecoveryCodesRequest>, RenewRecoveryCodesValidator>();
 
         return services;
     }

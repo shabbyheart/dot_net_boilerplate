@@ -162,7 +162,10 @@ public static class DependencyInjection
             options.Lockout.AllowedForNewUsers = true;
             options.Lockout.MaxFailedAccessAttempts = 5;
             options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
-        });
+        })
+            // TOTP codes from authenticator apps (ADR-0031). Not AddDefaultTokenProviders: the others need Data
+            // Protection, which ADR-0025 rejected for e-mailed links.
+            .AddTokenProvider<AuthenticatorTokenProvider<ApplicationUser>>(TokenOptions.DefaultAuthenticatorProvider);
 
         // Not AddEntityFrameworkStores: that store saves after every change, and use cases need one commit point (ADR-0011).
         services.AddScoped<IUserStore<ApplicationUser>, UnitOfWorkUserStore>();

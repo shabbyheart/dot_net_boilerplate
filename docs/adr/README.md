@@ -38,12 +38,13 @@ the decision, the reasoning and the trade-offs.
 | [0022](0022-role-administration-and-bootstrap.md) | Role administration, administrator role and tenant bootstrap | Accepted | M7 |
 | [0023](0023-tracing-and-metrics.md) | Tracing and metrics (OpenTelemetry, OTLP) | Accepted | M10 |
 | [0024](0024-http-hardening.md) | HTTP hardening and operational behaviour | Accepted (assumes TLS at a proxy) | M10 |
-| [0025](0025-local-accounts.md) | Local accounts (Identity, API-issued JWTs, rotating refresh tokens) | Accepted (optional, off by default; token cleanup: 0026) | M8 |
+| [0025](0025-local-accounts.md) | Local accounts (Identity, API-issued JWTs, rotating refresh tokens) | Accepted (optional, off by default; token cleanup: 0026; two-factor: 0031) | M8 |
 | [0026](0026-data-retention-housekeeping.md) | Data retention and housekeeping (timed cleanup of expired tokens and delivered outbox rows) | Accepted | M11 |
 | [0027](0027-platform-administration-and-invitations.md) | Platform administration (tenants over HTTP) and invitations to tenant roles | Accepted | M12 |
 | [0028](0028-audit-log.md) | Audit log (append-only, tenant-owned, recorded in the use case's unit of work) | Accepted | M13 |
 | [0029](0029-tenant-members.md) | Tenant members (derived from role assignments; remove and leave) | Accepted | M14 |
 | [0030](0030-file-storage.md) | File storage (storage port, local disk, metadata in PostgreSQL, deletion through the outbox) | Accepted | M15 |
+| [0031](0031-two-factor-sign-in.md) | Two-factor sign-in for local accounts (TOTP, hashed recovery codes, one-step login) | Accepted | M16 |
 
 ## Template
 

@@ -27,4 +27,11 @@ public static class AccountRules
 
     public static IRuleBuilderOptions<T, string> ValidToken<T>(this IRuleBuilder<T, string> rule) =>
         rule.NotEmpty().MaximumLength(SecureToken.MaxLength);
+
+    /// <summary>Six digits from an authenticator app; apps often show them with a space in the middle (ADR-0031).</summary>
+    public static IRuleBuilderOptions<T, string> AuthenticatorCode<T>(this IRuleBuilder<T, string> rule) =>
+        rule.NotEmpty().MaximumLength(16).Matches("^[0-9 -]+$").WithMessage("Enter the code from your authenticator app.");
+
+    public static IRuleBuilderOptions<T, string> RecoveryCode<T>(this IRuleBuilder<T, string> rule) =>
+        rule.NotEmpty().MaximumLength(TwoFactor.RecoveryCodes.MaxLength);
 }

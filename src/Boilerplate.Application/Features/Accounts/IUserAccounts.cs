@@ -17,10 +17,15 @@ public interface IUserAccounts
     Task<Registration> RegisterAsync(string email, string password, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Checks the password and counts failed attempts towards lockout. Saves the attempt counters itself, because
-    /// they must be stored even though the sign-in fails.
+    /// Checks the password and, for accounts with two-factor sign-in, the second factor (ADR-0031). Counts failed
+    /// attempts towards lockout and resets the count only when every factor succeeded. Saves the attempt counters (and
+    /// a used recovery code) itself, because they must be stored even though the sign-in may still fail.
     /// </summary>
-    Task<PasswordCheck> CheckPasswordAsync(string email, string password, CancellationToken cancellationToken);
+    Task<PasswordCheck> CheckPasswordAsync(
+        string email,
+        string password,
+        SecondFactor? secondFactor,
+        CancellationToken cancellationToken);
 
     /// <returns><see langword="false"/> when the user does not exist.</returns>
     Task<bool> ConfirmEmailAsync(string userId, CancellationToken cancellationToken);
@@ -35,4 +40,31 @@ public interface IUserAccounts
 
     /// <summary>Whether the user exists, has a confirmed address and is not locked out.</summary>
     Task<bool> CanSignInAsync(string userId, CancellationToken cancellationToken);
+
+    /// <returns>The account's two-factor state, or <see langword="null"/> when the user has no local account.</returns>
+    Task<TwoFactorAccount?> FindTwoFactorAccountAsync(string userId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Re-authenticates a signed-in user before a sensitive change. A wrong password counts towards lockout and is
+    /// saved immediately; a locked account always fails.
+    /// </summary>
+    Task<bool> VerifyPasswordAsync(string userId, string password, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Checks an authenticator code against the current key (even before two-factor sign-in is on), or redeems a
+    /// recovery code. A failure counts towards lockout and is saved immediately; a locked account always fails.
+    /// </summary>
+    Task<bool> VerifySecondFactorAsync(string userId, SecondFactor secondFactor, CancellationToken cancellationToken);
+
+    /// <summary>Replaces the authenticator key with a new random one and returns it (base32).</summary>
+    Task<string> ResetAuthenticatorKeyAsync(string userId, CancellationToken cancellationToken);
+
+    /// <summary>Switches two-factor sign-in on and stores the hashes of new recovery codes.</summary>
+    Task EnableTwoFactorAsync(string userId, IReadOnlyCollection<string> recoveryCodeHashes, CancellationToken cancellationToken);
+
+    /// <summary>Switches two-factor sign-in off, replaces the key with an unknown one and removes the recovery codes.</summary>
+    Task DisableTwoFactorAsync(string userId, CancellationToken cancellationToken);
+
+    /// <summary>Replaces the recovery codes with new ones (hashes).</summary>
+    Task ReplaceRecoveryCodesAsync(string userId, IReadOnlyCollection<string> recoveryCodeHashes, CancellationToken cancellationToken);
 }

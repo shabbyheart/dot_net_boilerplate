@@ -26,6 +26,12 @@ public sealed class AccountSettings : IValidatableObject
     [Range(typeof(TimeSpan), "00:05:00", "1.00:00:00")]
     public TimeSpan PasswordResetLifetime { get; set; } = TimeSpan.FromHours(1);
 
+    /// <summary>The name authenticator apps show for this service's codes (ADR-0031).</summary>
+    [Required]
+    [StringLength(64, MinimumLength = 1)]
+    [RegularExpression("^[^:]+$", ErrorMessage = "Accounts:TwoFactorIssuer must not contain ':'.")]
+    public string TwoFactorIssuer { get; set; } = "Boilerplate";
+
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
         if (!Enabled)
