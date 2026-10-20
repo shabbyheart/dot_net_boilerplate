@@ -1,6 +1,8 @@
 using Boilerplate.Application.Common.Email;
 using Boilerplate.Application.Common.Persistence;
+using Boilerplate.Application.Common.Storage;
 using Boilerplate.Application.Features.Accounts;
+using Boilerplate.Application.Features.Files;
 using Boilerplate.Application.Features.Invitations;
 using Boilerplate.Infrastructure.Accounts;
 using Boilerplate.Infrastructure.Email;
@@ -8,6 +10,7 @@ using Boilerplate.Infrastructure.Housekeeping;
 using Boilerplate.Infrastructure.Messaging;
 using Boilerplate.Infrastructure.Persistence;
 using Boilerplate.Infrastructure.Persistence.Interceptors;
+using Boilerplate.Infrastructure.Storage;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -91,6 +94,15 @@ public static class DependencyInjection
             .ValidateDataAnnotations()
             .ValidateOnStart();
         services.AddSingleton(provider => provider.GetRequiredService<IOptions<InvitationSettings>>().Value);
+
+        // File storage (ADR-0030). Upload limits are Application settings; where content lives is decided here.
+        services.AddOptions<FileSettings>()
+            .BindConfiguration(FileSettings.SectionName)
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+        services.AddSingleton(provider => provider.GetRequiredService<IOptions<FileSettings>>().Value);
+        services.AddOptions<LocalFileStorageOptions>().BindConfiguration(LocalFileStorageOptions.SectionName);
+        services.AddSingleton<IFileStorage, LocalDiskFileStorage>();
 
         AddAccounts(services);
 

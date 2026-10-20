@@ -7,6 +7,7 @@ using Boilerplate.Domain.Accounts;
 using Boilerplate.Domain.Auditing;
 using Boilerplate.Domain.Authorization;
 using Boilerplate.Domain.Common;
+using Boilerplate.Domain.Files;
 using Boilerplate.Domain.Projects;
 using Boilerplate.Domain.Tenants;
 using Boilerplate.Infrastructure.Accounts;
@@ -56,6 +57,8 @@ public class AppDbContext : IdentityUserContext<ApplicationUser, Guid>, IAppDbCo
     public DbSet<AuditLogEntry> AuditLogEntries => Set<AuditLogEntry>();
 
     public DbSet<Project> Projects => Set<Project>();
+
+    public DbSet<StoredFile> Files => Set<StoredFile>();
 
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 

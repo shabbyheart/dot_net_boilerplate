@@ -72,7 +72,8 @@ Failures -> typed exceptions -> ProblemDetails (RFC 9457) with traceId
 | 14 | Controllers (`/api/v1/...`) | Feature endpoints (ADR-0020); `ValidationFilter` validates action arguments first (ADR-0014) |
 
 OpenTelemetry traces every request except health probes, plus outgoing HTTP calls and PostgreSQL commands (ADR-0023).
-Kestrel rejects request bodies over 1 MB with 413 ProblemDetails.
+Kestrel rejects request bodies over 1 MB with 413 ProblemDetails; only file uploads may be larger, up to
+`Storage:MaxFileSize` (ADR-0030).
 
 ## A feature, end to end (projects)
 
@@ -178,6 +179,24 @@ A member is a user who holds at least one role in the tenant; there is no member
 | `AuditLog`, `AuditActions` | Application | `Record(...)` adds an entry to the use case's unit of work, committed with the change; stable action names |
 | `Features/Auditing`, `AuditLogController` | Application, Api | `GET /api/v1/audit-log` (`audit.read`): newest first, paged, filter by action, actor, target |
 | `AppDbContext` | Infrastructure | Refuses to save modified or deleted entries; `HousekeepingCleaner` deletes them after `AuditLogRetention` |
+
+## File storage (ADR-0030)
+
+```mermaid
+flowchart LR
+  C["FilesController + UploadFileRequestBinder (Api)"] --> H["Upload/Download/Delete handlers (Application)"]
+  H -->|"IAppDbContext: files (tenant-owned)"| DB[(PostgreSQL)]
+  H -->|"IFileStorage: content by key = id"| S["LocalDiskFileStorage (Infrastructure) → Storage:Local:RootPath"]
+  H -->|"delete: Outbox files.delete-content"| O["DeleteFileContentHandler → IFileStorage.DeleteAsync"]
+```
+
+| Piece | Project | Responsibility |
+|---|---|---|
+| `StoredFile` | Domain | Tenant-owned description (normalized name, content type, length); storage key derived from the id |
+| `IFileStorage`, `FileSettings` | Application | Storage port; upload limits (`Storage:MaxFileSize`, `Storage:AllowedContentTypes`) |
+| `Features/Files` | Application | Upload (content first, removed again if the save fails), list, get, download, delete (content via the outbox) |
+| `LocalDiskFileStorage` | Infrastructure | Content under the root, temporary file then rename, keys confined to the root; 409 when no root is set |
+| `FilesController`, `UploadFileRequestBinder`, `FileUploadSizeLimitFilter` | Api | `/api/v1/files` (`files.read`, `files.manage`); multipart binding; body limit raised for uploads only (413 above it) |
 
 ## Persistence and tenancy
 

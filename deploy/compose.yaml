@@ -39,6 +39,10 @@ services:
       Email__Smtp__Security: None
       Email__Smtp__FromAddress: noreply@boilerplate.local
       Email__Smtp__FromName: Boilerplate
+      # Uploaded file content (ADR-0030), kept in a volume across container restarts.
+      Storage__Local__RootPath: /app/storage
+    volumes:
+      - file-data:/app/storage
     depends_on:
       db:
         condition: service_healthy
@@ -55,3 +59,4 @@ services:
 
 volumes:
   db-data:
+  file-data:

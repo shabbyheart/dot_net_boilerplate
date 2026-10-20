@@ -2,6 +2,7 @@ using Boilerplate.Application.Common.Messaging;
 using Boilerplate.Domain.Accounts;
 using Boilerplate.Domain.Auditing;
 using Boilerplate.Domain.Authorization;
+using Boilerplate.Domain.Files;
 using Boilerplate.Domain.Projects;
 using Boilerplate.Domain.Tenants;
 using Microsoft.EntityFrameworkCore;
@@ -27,6 +28,8 @@ public interface IAppDbContext
     DbSet<AuditLogEntry> AuditLogEntries { get; }
 
     DbSet<Project> Projects { get; }
+
+    DbSet<StoredFile> Files { get; }
 
     DbSet<OutboxMessage> OutboxMessages { get; }
 

@@ -3,7 +3,7 @@
 A reusable ASP.NET Core backend foundation: four projects (Domain, Application, Infrastructure, Api)
 with vertical feature slices, enforced dependency rules, and tests from the first commit.
 
-Status: **all planned milestones done (M0 to M10), plus M11 housekeeping, M12 platform administration, M13 audit log and M14 tenant members.** The API accepts tokens from an external OpenID Connect provider
+Status: **all planned milestones done (M0 to M10), plus M11 housekeeping, M12 platform administration, M13 audit log, M14 tenant members and M15 file storage.** The API accepts tokens from an external OpenID Connect provider
 and can optionally issue its own through local accounts (registration, e-mail confirmation, sign-in with lockout,
 rotating refresh tokens, password reset). It has OpenTelemetry tracing and metrics, rate limiting, security headers,
 CORS and proxy support. It also has
@@ -14,7 +14,8 @@ checked on every request so revocation is immediate. Roles are administered over
 and a one-off `bootstrap` command creates a tenant and its first administrator. Platform administrators (granted by
 the `platform-admin` command) create and rename tenants over HTTP, and people join tenants through e-mailed
 invitations; administrators list and remove members, and members can leave a tenant. Changes to roles, assignments, invitations and tenants are recorded in an append-only, tenant-scoped
-audit log that administrators can read over HTTP. It stores data in PostgreSQL
+audit log that administrators can read over HTTP. Tenants upload and download files, kept on local disk behind a
+storage port. It stores data in PostgreSQL
 through EF Core, with tenant isolation driven by the token's `tenant_id` claim. Side effects such as e-mail go
 through a transactional outbox and are delivered by a background dispatcher over SMTP; a housekeeping job deletes
 expired tokens and delivered messages after a retention period. A small `projects` feature
@@ -174,6 +175,8 @@ CI scans the full git history with gitleaks.
 | `Email:Smtp:Username`, `Email:Smtp:Password` | If the server requires them | User secrets or environment variables |
 | `Outbox:Enabled`, `PollingInterval`, `BatchSize`, `Lease`, `MaxAttempts` | No (defaults: on, 5 s, 20, 5 min, 8) | Configuration ([ADR-0019](docs/adr/0019-outbox-and-email.md)) |
 | `Housekeeping:Enabled`, `Interval`, `BatchSize`, `ExpiredTokenRetention`, `ProcessedOutboxRetention`, `AuditLogRetention` | No (defaults: on, 1 h, 1000, 7 days, 7 days, 365 days) | Cleanup of expired tokens, delivered outbox messages and old audit log entries ([ADR-0026](docs/adr/0026-data-retention-housekeeping.md), [ADR-0028](docs/adr/0028-audit-log.md)) |
+| `Storage:Local:RootPath` | No (default: none); without it, uploads and downloads answer 409 | Directory for uploaded file content; shared by all instances (ADR-0030). Compose mounts a volume at `/app/storage` |
+| `Storage:MaxFileSize`, `Storage:AllowedContentTypes` | No (defaults: 10 MB, at most 100 MB; PDF, common images, plain text, CSV) | Upload limits; a configured list replaces the defaults (ADR-0030) |
 | `Invitations:AcceptUrl`, `Invitations:Lifetime` | No (default: none, 7 days); without the URL, creating invitations and tenants answers 409 | Client page that invitation e-mails link to (ADR-0027) |
 | `Cors:AllowedOrigins` | No (default: none) | Browser origins allowed to call the API ([ADR-0024](docs/adr/0024-http-hardening.md)) |
 | `RateLimiting:PermitLimit`, `RateLimiting:Window` | No (default: 100 per 10 s per caller) | Configuration (ADR-0024) |
