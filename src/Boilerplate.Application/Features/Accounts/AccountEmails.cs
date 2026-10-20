@@ -38,6 +38,25 @@ internal static class AccountEmails
         your password stays the same.
         """);
 
+    public static EmailMessage TwoFactorEnabled(string to) => new(
+        to,
+        "Two-factor sign-in is on",
+        """
+        Two-factor sign-in was turned on for your account. From now on, signing in needs a code from your authenticator
+        app or one of your recovery codes. Keep the recovery codes somewhere safe.
+
+        If you did not do this, reset your password and contact your administrator.
+        """);
+
+    public static EmailMessage TwoFactorDisabled(string to) => new(
+        to,
+        "Two-factor sign-in is off",
+        """
+        Two-factor sign-in was turned off for your account. Signing in now needs only your password.
+
+        If you did not do this, reset your password, turn two-factor sign-in on again and contact your administrator.
+        """);
+
     private static string Link(string pageUrl, string token)
     {
         var separator = pageUrl.Contains('?', StringComparison.Ordinal) ? '&' : '?';

@@ -3,9 +3,9 @@
 A reusable ASP.NET Core backend foundation: four projects (Domain, Application, Infrastructure, Api)
 with vertical feature slices, enforced dependency rules, and tests from the first commit.
 
-Status: **all planned milestones done (M0 to M10), plus M11 housekeeping, M12 platform administration, M13 audit log, M14 tenant members and M15 file storage.** The API accepts tokens from an external OpenID Connect provider
+Status: **all planned milestones done (M0 to M10), plus M11 housekeeping, M12 platform administration, M13 audit log, M14 tenant members, M15 file storage and M16 two-factor sign-in.** The API accepts tokens from an external OpenID Connect provider
 and can optionally issue its own through local accounts (registration, e-mail confirmation, sign-in with lockout,
-rotating refresh tokens, password reset). It has OpenTelemetry tracing and metrics, rate limiting, security headers,
+rotating refresh tokens, password reset, optional two-factor sign-in with an authenticator app). It has OpenTelemetry tracing and metrics, rate limiting, security headers,
 CORS and proxy support. It also has
 structured logging, a ProblemDetails error contract, liveness
 and readiness probes, and (in Development) an OpenAPI document. Every endpoint requires a valid JWT bearer token
@@ -188,6 +188,7 @@ CI scans the full git history with gitleaks.
 | `Accounts:Enabled`, `EmailConfirmationUrl`, `PasswordResetUrl` | No (default: off); both URLs when on | Configuration: client pages the e-mailed links point to ([ADR-0025](docs/adr/0025-local-accounts.md)) |
 | `Accounts:Tokens:Issuer`, `Audience`, `SigningKey` | When accounts are enabled | Configuration; `SigningKey` (base64, at least 32 random bytes) is a secret: user secrets or environment variable |
 | `Accounts:Tokens:PreviousSigningKeys`, `Lifetime`; `Accounts:RefreshTokenLifetime`, ... | No (15 min access, 14 days refresh) | Configuration (ADR-0025) |
+| `Accounts:TwoFactorIssuer` | No (default: `Boilerplate`) | The name authenticator apps show for this service's codes ([ADR-0031](docs/adr/0031-two-factor-sign-in.md)) |
 | `RateLimiting:AccountsPermitLimit`, `RateLimiting:AccountsWindow` | No (default: 10 per minute per IP) | Configuration (ADR-0025) |
 
 For `dotnet run`, point `Email:Smtp` at Mailpit (`docker compose -f deploy/compose.yaml up -d mailpit`): host

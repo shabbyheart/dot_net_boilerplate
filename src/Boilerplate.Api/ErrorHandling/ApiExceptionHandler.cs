@@ -12,6 +12,9 @@ internal sealed partial class ApiExceptionHandler(
     IProblemDetailsService problemDetailsService,
     ILogger<ApiExceptionHandler> logger) : IExceptionHandler
 {
+    /// <summary>ProblemDetails extension set on 401 answers to a sign-in that needs a second factor.</summary>
+    public const string TwoFactorRequiredExtension = "twoFactorRequired";
+
     public async ValueTask<bool> TryHandleAsync(
         HttpContext httpContext,
         Exception exception,
@@ -23,6 +26,7 @@ internal sealed partial class ApiExceptionHandler(
             ConflictException conflict => (StatusCodes.Status409Conflict, conflict.Message),
             ForbiddenException forbidden => (StatusCodes.Status403Forbidden, forbidden.Message),
             AuthenticationFailedException failed => (StatusCodes.Status401Unauthorized, failed.Message),
+            TwoFactorRequiredException required => (StatusCodes.Status401Unauthorized, required.Message),
 
             // A request that passed validation but breaks a domain rule; the message is written for callers.
             DomainException domainRule => (StatusCodes.Status400BadRequest, domainRule.Message),
@@ -45,12 +49,20 @@ internal sealed partial class ApiExceptionHandler(
 
         httpContext.Response.StatusCode = statusCode;
 
-        return await problemDetailsService.TryWriteAsync(new ProblemDetailsContext
+        var context = new ProblemDetailsContext
         {
             HttpContext = httpContext,
             Exception = exception,
             ProblemDetails = { Status = statusCode, Detail = detail },
-        });
+        };
+
+        // Lets clients tell "ask for a code" apart from a failed sign-in without parsing the message (ADR-0031).
+        if (exception is TwoFactorRequiredException)
+        {
+            context.ProblemDetails.Extensions[TwoFactorRequiredExtension] = true;
+        }
+
+        return await problemDetailsService.TryWriteAsync(context);
     }
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Unhandled exception while processing {Method} {Path}")]

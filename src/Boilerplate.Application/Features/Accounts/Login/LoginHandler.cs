@@ -5,20 +5,29 @@ namespace Boilerplate.Application.Features.Accounts.Login;
 
 public sealed class LoginHandler(IAppDbContext db, IUserAccounts accounts, AccountSessions sessions)
 {
-    /// <summary>The same message for unknown addresses, wrong passwords and locked accounts.</summary>
+    /// <summary>The same message for unknown addresses, wrong passwords, wrong codes and locked accounts.</summary>
     public const string FailedMessage = "The e-mail address or password is incorrect, or the account is temporarily locked.";
 
-    /// <exception cref="AuthenticationFailedException">Unknown address, wrong password or locked account.</exception>
+    public const string TwoFactorRequiredMessage =
+        "This account uses two-factor sign-in. Sign in again with a code from your authenticator app or a recovery code.";
+
+    /// <exception cref="AuthenticationFailedException">Unknown address, wrong password or code, or locked account.</exception>
+    /// <exception cref="TwoFactorRequiredException">Correct password, but the account needs a second factor (ADR-0031).</exception>
     /// <exception cref="ForbiddenException">Correct password, but unconfirmed address or not a member of the tenant.</exception>
     public async Task<TokenResponse> HandleAsync(LoginRequest request, CancellationToken cancellationToken)
     {
-        var check = await accounts.CheckPasswordAsync(request.Email, request.Password, cancellationToken);
+        var check = await accounts.CheckPasswordAsync(
+            request.Email,
+            request.Password,
+            SecondFactor.From(request.TwoFactorCode, request.RecoveryCode),
+            cancellationToken);
 
         // Only callers who know the password learn more than "failed".
         var userId = check.Status switch
         {
             PasswordCheckStatus.Succeeded => check.UserId!,
             PasswordCheckStatus.EmailNotConfirmed => throw new ForbiddenException("Confirm your e-mail address before signing in."),
+            PasswordCheckStatus.TwoFactorRequired => throw new TwoFactorRequiredException(TwoFactorRequiredMessage),
             _ => throw new AuthenticationFailedException(FailedMessage),
         };
 

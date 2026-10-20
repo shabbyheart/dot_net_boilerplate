@@ -138,6 +138,9 @@ The rules in [docs/architecture.md](docs/architecture.md) are enforced by `Boile
 - Responses must not reveal whether an address is registered: same status and message for unknown, wrong and locked.
 - Account endpoints keep `[RequireAccountsEnabled]` and the `accounts` rate-limit policy. Do not lengthen token
   lifetimes or weaken lockout and password rules without a superseding ADR.
+- Two-factor sign-in (ADR-0031): reset the failed-attempt count only after every factor succeeded; wrong codes count
+  towards lockout. Store recovery codes only as `RecoveryCodes.Hash`. Changes to two-factor settings need the current
+  password, and switching off or renewing codes also needs a current code. Never let e-mail alone remove the second factor.
 
 ## Operations (ADR-0023, ADR-0024)
 
