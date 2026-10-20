@@ -160,6 +160,15 @@ Anonymous → 401; authenticated without the permission or without a tenant → 
 | `Invitation` | Domain | Tenant-owned offer of a role; hashed single-use token, expiry, revocation |
 | `InvitationSender`, `Features/Invitations`, `InvitationsController` | Application, Api | Issue (escalation guard, outbox e-mail), list, revoke, accept (reviewed tenant-filter bypass by token hash) |
 
+### Audit log (ADR-0028)
+
+| Piece | Project | Responsibility |
+|---|---|---|
+| `AuditLogEntry` | Domain | Tenant-owned record of a change: time, actor, action, target id, description; no methods that change it |
+| `AuditLog`, `AuditActions` | Application | `Record(...)` adds an entry to the use case's unit of work, committed with the change; stable action names |
+| `Features/Auditing`, `AuditLogController` | Application, Api | `GET /api/v1/audit-log` (`audit.read`): newest first, paged, filter by action, actor, target |
+| `AppDbContext` | Infrastructure | Refuses to save modified or deleted entries; `HousekeepingCleaner` deletes them after `AuditLogRetention` |
+
 ## Persistence and tenancy
 
 ```mermaid
@@ -207,5 +216,6 @@ No database transaction is held while a handler calls an external service; deliv
 
 `HousekeepingService` (hosted service, Infrastructure) runs `HousekeepingCleaner` at startup and then on a timer.
 Each round deletes, in bounded batches, refresh and one-time tokens that expired more than the retention ago and
-outbox messages delivered more than the retention ago. Pending and dead-lettered messages are never deleted.
+outbox messages delivered more than the retention ago, and audit log entries older than their own retention
+(ADR-0028). Pending and dead-lettered messages are never deleted.
 Deleting is idempotent, so every instance may run it without coordination; `Housekeeping:Enabled` turns it off.

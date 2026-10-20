@@ -1,4 +1,5 @@
 using Boilerplate.Domain.Accounts;
+using Boilerplate.Domain.Auditing;
 using Boilerplate.Domain.Authorization;
 using Boilerplate.Domain.Tenants;
 using Boilerplate.Infrastructure.Housekeeping;
@@ -19,6 +20,7 @@ public sealed class HousekeepingTests(HousekeepingDatabase database, ApiFactory 
     : IClassFixture<HousekeepingDatabase>, IClassFixture<ApiFactory>
 {
     private static readonly TimeSpan Retention = TimeSpan.FromDays(7);
+    private static readonly TimeSpan AuditLogRetention = TimeSpan.FromDays(90);
 
     private readonly CancellationToken _cancellationToken = TestContext.Current.CancellationToken;
     private readonly FakeTimeProvider _clock = new(new DateTimeOffset(2026, 3, 1, 9, 0, 0, TimeSpan.Zero));
@@ -52,14 +54,16 @@ public sealed class HousekeepingTests(HousekeepingDatabase database, ApiFactory 
         // Invitations are tenant-owned; cleanup covers every tenant.
         var tenantId = await AddTenantAsync(services);
         var recentInvitation = await AddInvitationsAsync(services, tenantId);
+        var recentAuditLogEntry = await AddAuditLogEntriesAsync(services, tenantId);
 
         var result = await services.GetRequiredService<HousekeepingCleaner>().RunAsync(_cancellationToken);
 
-        result.ShouldBe(new HousekeepingResult(RefreshTokens: 1, OneTimeTokens: 1, Invitations: 1, OutboxMessages: 1));
+        result.ShouldBe(new HousekeepingResult(RefreshTokens: 1, OneTimeTokens: 1, Invitations: 1, OutboxMessages: 1, AuditLogEntries: 1));
 
         await using var scope = services.CreateScope(tenantId);
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         (await db.Invitations.Select(invitation => invitation.Id).ToListAsync(_cancellationToken)).ShouldBe([recentInvitation]);
+        (await db.AuditLogEntries.Select(entry => entry.Id).ToListAsync(_cancellationToken)).ShouldBe([recentAuditLogEntry]);
         (await db.RefreshTokens.Select(token => token.Id).ToListAsync(_cancellationToken))
             .ShouldBe([recentlyExpired.Id, replaced.Id, current.Id], ignoreOrder: true);
         (await db.OneTimeTokens.Select(token => token.Id).ToListAsync(_cancellationToken))
@@ -121,6 +125,7 @@ public sealed class HousekeepingTests(HousekeepingDatabase database, ApiFactory 
                 ["Housekeeping:BatchSize"] = batchSize.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 ["Housekeeping:ExpiredTokenRetention"] = Retention.ToString(),
                 ["Housekeeping:ProcessedOutboxRetention"] = Retention.ToString(),
+                ["Housekeeping:AuditLogRetention"] = AuditLogRetention.ToString(),
             });
 
         await using var scope = services.CreateScope(tenantId: null);
@@ -129,6 +134,7 @@ public sealed class HousekeepingTests(HousekeepingDatabase database, ApiFactory 
         await db.OneTimeTokens.ExecuteDeleteAsync(_cancellationToken);
         await db.OutboxMessages.ExecuteDeleteAsync(_cancellationToken);
         await db.Invitations.IgnoreQueryFilters().ExecuteDeleteAsync(_cancellationToken);
+        await db.AuditLogEntries.IgnoreQueryFilters().ExecuteDeleteAsync(_cancellationToken);
 
         return services;
     }
@@ -153,6 +159,18 @@ public sealed class HousekeepingTests(HousekeepingDatabase database, ApiFactory 
         var recent = Invitation.Issue("recent@example.com", role, NewHash(), Now.AddDays(-10), TimeSpan.FromDays(7));
         db.Roles.Add(role);
         db.Invitations.AddRange(old, recent);
+        await db.SaveChangesAsync(_cancellationToken);
+        return recent.Id;
+    }
+
+    /// <summary>Adds an audit log entry older than its retention and one within it; returns the latter.</summary>
+    private async Task<Guid> AddAuditLogEntriesAsync(IServiceProvider services, Guid tenantId)
+    {
+        await using var scope = services.CreateScope(tenantId);
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var old = AuditLogEntry.Record(Now - AuditLogRetention - TimeSpan.FromDays(1), "user-1", "role.created", Guid.NewGuid(), "Old.");
+        var recent = AuditLogEntry.Record(Now - AuditLogRetention + TimeSpan.FromDays(1), "user-1", "role.created", Guid.NewGuid(), "Recent.");
+        db.AuditLogEntries.AddRange(old, recent);
         await db.SaveChangesAsync(_cancellationToken);
         return recent.Id;
     }

@@ -3,7 +3,7 @@
 A reusable ASP.NET Core backend foundation: four projects (Domain, Application, Infrastructure, Api)
 with vertical feature slices, enforced dependency rules, and tests from the first commit.
 
-Status: **all planned milestones done (M0 to M10), plus M11 housekeeping and M12 platform administration.** The API accepts tokens from an external OpenID Connect provider
+Status: **all planned milestones done (M0 to M10), plus M11 housekeeping, M12 platform administration and M13 audit log.** The API accepts tokens from an external OpenID Connect provider
 and can optionally issue its own through local accounts (registration, e-mail confirmation, sign-in with lockout,
 rotating refresh tokens, password reset). It has OpenTelemetry tracing and metrics, rate limiting, security headers,
 CORS and proxy support. It also has
@@ -13,7 +13,8 @@ unless it is explicitly anonymous, and endpoints can require permissions granted
 checked on every request so revocation is immediate. Roles are administered over HTTP with an escalation guard,
 and a one-off `bootstrap` command creates a tenant and its first administrator. Platform administrators (granted by
 the `platform-admin` command) create and rename tenants over HTTP, and people join tenants through e-mailed
-invitations. It stores data in PostgreSQL
+invitations. Changes to roles, assignments, invitations and tenants are recorded in an append-only, tenant-scoped
+audit log that administrators can read over HTTP. It stores data in PostgreSQL
 through EF Core, with tenant isolation driven by the token's `tenant_id` claim. Side effects such as e-mail go
 through a transactional outbox and are delivered by a background dispatcher over SMTP; a housekeeping job deletes
 expired tokens and delivered messages after a retention period. A small `projects` feature
@@ -172,7 +173,7 @@ CI scans the full git history with gitleaks.
 | `Email:Smtp:Host`, `Email:Smtp:FromAddress` | Yes; startup fails without them | Configuration. Also `Port` (587), `Security` (`StartTls`; `None` only for Mailpit), `FromName` |
 | `Email:Smtp:Username`, `Email:Smtp:Password` | If the server requires them | User secrets or environment variables |
 | `Outbox:Enabled`, `PollingInterval`, `BatchSize`, `Lease`, `MaxAttempts` | No (defaults: on, 5 s, 20, 5 min, 8) | Configuration ([ADR-0019](docs/adr/0019-outbox-and-email.md)) |
-| `Housekeeping:Enabled`, `Interval`, `BatchSize`, `ExpiredTokenRetention`, `ProcessedOutboxRetention` | No (defaults: on, 1 h, 1000, 7 days, 7 days) | Cleanup of expired tokens and delivered outbox messages ([ADR-0026](docs/adr/0026-data-retention-housekeeping.md)) |
+| `Housekeeping:Enabled`, `Interval`, `BatchSize`, `ExpiredTokenRetention`, `ProcessedOutboxRetention`, `AuditLogRetention` | No (defaults: on, 1 h, 1000, 7 days, 7 days, 365 days) | Cleanup of expired tokens, delivered outbox messages and old audit log entries ([ADR-0026](docs/adr/0026-data-retention-housekeeping.md), [ADR-0028](docs/adr/0028-audit-log.md)) |
 | `Invitations:AcceptUrl`, `Invitations:Lifetime` | No (default: none, 7 days); without the URL, creating invitations and tenants answers 409 | Client page that invitation e-mails link to (ADR-0027) |
 | `Cors:AllowedOrigins` | No (default: none) | Browser origins allowed to call the API ([ADR-0024](docs/adr/0024-http-hardening.md)) |
 | `RateLimiting:PermitLimit`, `RateLimiting:Window` | No (default: 100 per 10 s per caller) | Configuration (ADR-0024) |

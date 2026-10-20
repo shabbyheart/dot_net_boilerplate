@@ -1,3 +1,4 @@
+using Boilerplate.Application.Features.Auditing;
 using Boilerplate.Application.Features.Projects;
 using Boilerplate.Application.Features.Roles;
 
@@ -15,6 +16,7 @@ public static class PermissionCatalog
         ProjectPermissions.Manage,
         RolePermissions.Read,
         RolePermissions.Manage,
+        AuditPermissions.Read,
     ];
 
     public static bool IsKnown(string permission) => All.Contains(permission, StringComparer.Ordinal);

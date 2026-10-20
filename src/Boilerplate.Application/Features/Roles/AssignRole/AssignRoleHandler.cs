@@ -1,3 +1,4 @@
+using Boilerplate.Application.Common.Auditing;
 using Boilerplate.Application.Common.Exceptions;
 using Boilerplate.Application.Common.Persistence;
 using Boilerplate.Domain.Authorization;
@@ -5,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Boilerplate.Application.Features.Roles.AssignRole;
 
-public sealed class AssignRoleHandler(IAppDbContext db, RoleEscalationGuard guard)
+public sealed class AssignRoleHandler(IAppDbContext db, RoleEscalationGuard guard, AuditLog auditLog)
 {
     /// <summary>Gives the user the role. Assigning a role the user already holds changes nothing.</summary>
     /// <exception cref="NotFoundException">No role with this id exists in the current tenant.</exception>
@@ -23,6 +24,7 @@ public sealed class AssignRoleHandler(IAppDbContext db, RoleEscalationGuard guar
         }
 
         db.RoleAssignments.Add(RoleAssignment.Create(userId, role));
+        auditLog.Record(AuditActions.RoleAssigned, role.Id, $"Assigned role '{role.Name}' to user {userId}.");
         await db.SaveChangesAsync(cancellationToken);
     }
 }

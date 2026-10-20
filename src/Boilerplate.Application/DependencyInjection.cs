@@ -3,6 +3,7 @@ using Boilerplate.Application.Common.Messaging;
 using Boilerplate.Application.Common.Security;
 using Boilerplate.Application.Common.Tenancy;
 using Boilerplate.Application.Features.Accounts;
+using Boilerplate.Application.Features.Auditing;
 using Boilerplate.Application.Features.Invitations;
 using Boilerplate.Application.Features.PlatformAdministrators;
 using Boilerplate.Application.Features.Projects;
@@ -24,6 +25,7 @@ public static class DependencyInjection
         services.AddOutbox();
         services.AddOutboxMessage<EmailMessage, SendEmailHandler>(EmailMessage.OutboxType);
 
+        services.AddAuditingFeature();
         services.AddProjectsFeature();
         services.AddRolesFeature();
         services.AddTenantsFeature();

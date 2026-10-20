@@ -25,4 +25,8 @@ public sealed class HousekeepingOptions
     /// <summary>How long delivered outbox messages (already without payload) are kept after delivery.</summary>
     [Range(typeof(TimeSpan), "00:00:00", "365.00:00:00")]
     public TimeSpan ProcessedOutboxRetention { get; set; } = TimeSpan.FromDays(7);
+
+    /// <summary>How long audit log entries are kept (ADR-0028).</summary>
+    [Range(typeof(TimeSpan), "1.00:00:00", "3650.00:00:00")]
+    public TimeSpan AuditLogRetention { get; set; } = TimeSpan.FromDays(365);
 }

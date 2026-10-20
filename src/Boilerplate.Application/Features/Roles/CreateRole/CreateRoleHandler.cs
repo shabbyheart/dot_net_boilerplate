@@ -1,10 +1,11 @@
+using Boilerplate.Application.Common.Auditing;
 using Boilerplate.Application.Common.Exceptions;
 using Boilerplate.Application.Common.Persistence;
 using Boilerplate.Domain.Authorization;
 
 namespace Boilerplate.Application.Features.Roles.CreateRole;
 
-public sealed class CreateRoleHandler(IAppDbContext db, RoleEscalationGuard guard)
+public sealed class CreateRoleHandler(IAppDbContext db, RoleEscalationGuard guard, AuditLog auditLog)
 {
     /// <exception cref="ForbiddenException">The role would grant a permission the caller does not hold.</exception>
     /// <exception cref="ConflictException">Another role already uses the name.</exception>
@@ -21,6 +22,7 @@ public sealed class CreateRoleHandler(IAppDbContext db, RoleEscalationGuard guar
         }
 
         db.Roles.Add(role);
+        auditLog.Record(AuditActions.RoleCreated, role.Id, RoleAuditing.Created(role));
         await db.SaveChangesAsync(cancellationToken);
 
         return RoleResponse.From(role);

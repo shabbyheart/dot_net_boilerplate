@@ -159,6 +159,14 @@ The rules in [docs/architecture.md](docs/architecture.md) are enforced by `Boile
 - Data with a lifetime (tokens, delivered messages) is removed by `HousekeepingCleaner` (ADR-0026). A new table that
   grows without bound gets an index on its expiry column and a batched delete there, not a new scheduler.
 
+## Audit log (ADR-0028)
+
+- A use case that changes security-relevant state (roles, assignments, invitations, tenants, and anything like them
+  added later) calls `AuditLog.Record(...)` before its single `SaveChangesAsync`. Record only real changes.
+- Action names in `AuditActions` are a public contract: never rename them.
+- Descriptions may name roles, permissions and user ids; never e-mail addresses, tokens, secrets or request bodies.
+- The audit log is append-only: never change or delete entries; only housekeeping removes them after the retention.
+
 ## Tenancy (ADR-0010)
 
 - Data that belongs to a customer implements `ITenantOwned`. The query filter, foreign key, index and
