@@ -147,7 +147,18 @@ Anonymous → 401; authenticated without the permission or without a tenant → 
 | `RoleEscalationGuard` | Application | Callers grant, remove or hand out only permissions they hold (403 otherwise) |
 | `Features/Roles`, `RolesController`, `PermissionsController` | Application, Api | Role CRUD, assignments, catalogue |
 | `BootstrapTenantHandler`, `BootstrapCommand` | Application, Api | `bootstrap` command: tenant + administrator role + first administrator, one transaction |
-| `TenantOverride` | Application | Explicit tenant for commands and background work; `ClaimsTenantContext` prefers it over the claim |
+| `TenantOverride` | Application | Explicit tenant for commands, background work and platform administration; `ClaimsTenantContext` prefers it over the claim |
+
+### Platform administration and invitations (ADR-0027)
+
+| Piece | Project | Responsibility |
+|---|---|---|
+| `PlatformAdministrator` | Domain | A token subject allowed to administer tenants; not tenant-owned, no access inside tenants |
+| `PlatformAdministratorChecker`, `RequirePlatformAdministratorAttribute`, `PlatformAdministratorAuthorizationHandler` | Application, Api | One indexed query per request, no cache; 403 without the grant |
+| `PlatformAdministratorGrants`, `PlatformAdministratorCommand` | Application, Api | `platform-admin grant\|revoke --user <subject>`; the only way to grant it |
+| `Features/Tenants`, `PlatformTenantsController` | Application, Api | List, create (administrator role + invitation, one transaction), rename tenants; invite administrators |
+| `Invitation` | Domain | Tenant-owned offer of a role; hashed single-use token, expiry, revocation |
+| `InvitationSender`, `Features/Invitations`, `InvitationsController` | Application, Api | Issue (escalation guard, outbox e-mail), list, revoke, accept (reviewed tenant-filter bypass by token hash) |
 
 ## Persistence and tenancy
 

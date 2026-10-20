@@ -18,7 +18,7 @@ public sealed class HousekeepingOptions
     [Range(1, 10_000)]
     public int BatchSize { get; set; } = 1000;
 
-    /// <summary>How long refresh and one-time tokens are kept after they expire.</summary>
+    /// <summary>How long refresh tokens, one-time tokens and invitations are kept after they expire.</summary>
     [Range(typeof(TimeSpan), "00:00:00", "365.00:00:00")]
     public TimeSpan ExpiredTokenRetention { get; set; } = TimeSpan.FromDays(7);
 

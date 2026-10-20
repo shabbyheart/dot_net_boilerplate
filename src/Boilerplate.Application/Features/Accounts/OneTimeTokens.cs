@@ -1,4 +1,5 @@
 using Boilerplate.Application.Common.Persistence;
+using Boilerplate.Application.Common.Security;
 using Boilerplate.Domain.Accounts;
 using Boilerplate.Domain.Common;
 using Microsoft.EntityFrameworkCore;

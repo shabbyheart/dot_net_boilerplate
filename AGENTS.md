@@ -122,7 +122,11 @@ The rules in [docs/architecture.md](docs/architecture.md) are enforced by `Boile
 - Every permission constant is listed in `PermissionCatalog.All` (ADR-0022); `PermissionCatalogTests` enforces it.
 - Role administration must go through `RoleEscalationGuard`; never let a caller grant, remove or hand out a
   permission they do not hold. Use `ForbiddenException` (403) for such refusals.
-- Work without an HTTP user (commands, background jobs) sets the tenant with `TenantOverride`, never by faking claims.
+- Work without an HTTP user (commands, background jobs), platform administration and invitation acceptance set the
+  tenant with `TenantOverride`, never by faking claims. Set it before the first write for that tenant.
+- Platform endpoints use `[RequirePlatformAdministrator]`. Never add an endpoint that grants platform administration,
+  and never let the platform grant open data inside tenants (ADR-0027).
+- Inviting someone to a role is handing it out: go through `RoleEscalationGuard` like role assignment.
 
 ## Local accounts (ADR-0025)
 
@@ -160,7 +164,8 @@ The rules in [docs/architecture.md](docs/architecture.md) are enforced by `Boile
 - Data that belongs to a customer implements `ITenantOwned`. The query filter, foreign key, index and
   write checks are applied automatically; do not filter by tenant in handlers and never set `TenantId` yourself.
 - Unique constraints on tenant-owned data start with `TenantId` (`HasIndex(x => new { x.TenantId, x.Name }).IsUnique()`).
-- Do not call `IgnoreQueryFilters()` outside a reviewed path. The reviewed paths are platform administration and the
+- Do not call `IgnoreQueryFilters()` outside a reviewed path. The reviewed paths are invitation acceptance by token hash
+  (`AcceptInvitationHandler`, ADR-0027), housekeeping (ADR-0026) and the
   sign-in membership check (`AccountQueries.IsTenantMemberAsync`, ADR-0025), which names the tenant explicitly.
 - Raw SQL on tenant-owned tables belongs in Infrastructure, takes the tenant id as a parameter, and needs a cross-tenant test.
 - Every new tenant-owned entity needs isolation tests like `TenantIsolationTests` (reads, writes, bulk operations).

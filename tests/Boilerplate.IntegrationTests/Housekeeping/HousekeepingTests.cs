@@ -1,4 +1,6 @@
 using Boilerplate.Domain.Accounts;
+using Boilerplate.Domain.Authorization;
+using Boilerplate.Domain.Tenants;
 using Boilerplate.Infrastructure.Housekeeping;
 using Boilerplate.Infrastructure.Persistence;
 using Boilerplate.IntegrationTests.Support;
@@ -47,12 +49,17 @@ public sealed class HousekeepingTests(HousekeepingDatabase database, ApiFactory 
         var pending = await InsertOutboxRowAsync(services);
         var deadLettered = await InsertOutboxRowAsync(services, deadLetteredAt: Now.AddDays(-30));
 
+        // Invitations are tenant-owned; cleanup covers every tenant.
+        var tenantId = await AddTenantAsync(services);
+        var recentInvitation = await AddInvitationsAsync(services, tenantId);
+
         var result = await services.GetRequiredService<HousekeepingCleaner>().RunAsync(_cancellationToken);
 
-        result.ShouldBe(new HousekeepingResult(RefreshTokens: 1, OneTimeTokens: 1, OutboxMessages: 1));
+        result.ShouldBe(new HousekeepingResult(RefreshTokens: 1, OneTimeTokens: 1, Invitations: 1, OutboxMessages: 1));
 
-        await using var scope = services.CreateScope(tenantId: null);
+        await using var scope = services.CreateScope(tenantId);
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        (await db.Invitations.Select(invitation => invitation.Id).ToListAsync(_cancellationToken)).ShouldBe([recentInvitation]);
         (await db.RefreshTokens.Select(token => token.Id).ToListAsync(_cancellationToken))
             .ShouldBe([recentlyExpired.Id, replaced.Id, current.Id], ignoreOrder: true);
         (await db.OneTimeTokens.Select(token => token.Id).ToListAsync(_cancellationToken))
@@ -121,8 +128,33 @@ public sealed class HousekeepingTests(HousekeepingDatabase database, ApiFactory 
         await db.RefreshTokens.ExecuteDeleteAsync(_cancellationToken);
         await db.OneTimeTokens.ExecuteDeleteAsync(_cancellationToken);
         await db.OutboxMessages.ExecuteDeleteAsync(_cancellationToken);
+        await db.Invitations.IgnoreQueryFilters().ExecuteDeleteAsync(_cancellationToken);
 
         return services;
+    }
+
+    private async Task<Guid> AddTenantAsync(IServiceProvider services)
+    {
+        var tenant = Tenant.Create($"housekeeping-{Guid.NewGuid():N}");
+        await using var scope = services.CreateScope(tenantId: null);
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        db.Tenants.Add(tenant);
+        await db.SaveChangesAsync(_cancellationToken);
+        return tenant.Id;
+    }
+
+    /// <summary>Adds an invitation that expired beyond the retention and one that expired within it; returns the latter.</summary>
+    private async Task<Guid> AddInvitationsAsync(IServiceProvider services, Guid tenantId)
+    {
+        await using var scope = services.CreateScope(tenantId);
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var role = Role.Create("Readers");
+        var old = Invitation.Issue("old@example.com", role, NewHash(), Now.AddDays(-30), TimeSpan.FromDays(7));
+        var recent = Invitation.Issue("recent@example.com", role, NewHash(), Now.AddDays(-10), TimeSpan.FromDays(7));
+        db.Roles.Add(role);
+        db.Invitations.AddRange(old, recent);
+        await db.SaveChangesAsync(_cancellationToken);
+        return recent.Id;
     }
 
     private WebApplicationFactory<Program> StartApi(bool enabled)

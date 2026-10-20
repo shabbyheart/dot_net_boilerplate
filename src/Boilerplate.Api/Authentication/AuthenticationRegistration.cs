@@ -43,8 +43,10 @@ internal static class AuthenticationRegistration
             .SetFallbackPolicy(authenticatedUser)
             .SetDefaultPolicy(authenticatedUser);
 
-        // Permission checks query the database per request, so the handler is scoped like the database context.
+        // Permission and platform administrator checks query the database per request, so the handlers are scoped
+        // like the database context.
         services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
+        services.AddScoped<IAuthorizationHandler, PlatformAdministratorAuthorizationHandler>();
 
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUser, ClaimsCurrentUser>();

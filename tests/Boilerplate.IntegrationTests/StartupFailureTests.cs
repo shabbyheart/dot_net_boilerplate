@@ -22,6 +22,7 @@ public sealed class StartupFailureTests
     [InlineData("Email__Smtp__FromAddress", "", "The FromAddress field is required.")]
     [InlineData("Outbox__BatchSize", "0", "The field BatchSize must be between 1 and 500.")]
     [InlineData("Housekeeping__Interval", "00:00:10", "The field Interval must be between 00:01:00 and 1.00:00:00.")]
+    [InlineData("Invitations__AcceptUrl", "/relative", "Invitations:AcceptUrl must be an absolute http(s) URL.")]
     public async Task Host_exits_with_code_1_when_configuration_is_invalid(string setting, string value, string expectedReason)
     {
         var environment = ValidBaseline();

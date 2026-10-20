@@ -3,6 +3,8 @@ using Boilerplate.Application.Common.Messaging;
 using Boilerplate.Application.Common.Security;
 using Boilerplate.Application.Common.Tenancy;
 using Boilerplate.Application.Features.Accounts;
+using Boilerplate.Application.Features.Invitations;
+using Boilerplate.Application.Features.PlatformAdministrators;
 using Boilerplate.Application.Features.Projects;
 using Boilerplate.Application.Features.Roles;
 using Boilerplate.Application.Features.Tenants;
@@ -16,6 +18,7 @@ public static class DependencyInjection
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
         services.AddScoped<PermissionChecker>();
+        services.AddScoped<PlatformAdministratorChecker>();
         services.AddScoped<TenantOverride>();
 
         services.AddOutbox();
@@ -24,6 +27,8 @@ public static class DependencyInjection
         services.AddProjectsFeature();
         services.AddRolesFeature();
         services.AddTenantsFeature();
+        services.AddInvitationsFeature();
+        services.AddScoped<PlatformAdministratorGrants>();
         services.AddAccountsFeature();
 
         return services;

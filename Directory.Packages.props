@@ -55,6 +55,9 @@
   <ItemGroup Label="E-mail">
     <!-- ADR-0019 -->
     <PackageVersion Include="MailKit" Version="4.18.1" />
+    <!-- Transitive through MailKit/MimeKit; pinned to the release that fixes CVE-2026-84008 and CVE-2026-70162 (DoS).
+         Remove when MimeKit references 10.0.13 or later itself. -->
+    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
   </ItemGroup>
 
   <ItemGroup Label="Configuration">

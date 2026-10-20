@@ -40,6 +40,7 @@ the decision, the reasoning and the trade-offs.
 | [0024](0024-http-hardening.md) | HTTP hardening and operational behaviour | Accepted (assumes TLS at a proxy) | M10 |
 | [0025](0025-local-accounts.md) | Local accounts (Identity, API-issued JWTs, rotating refresh tokens) | Accepted (optional, off by default; token cleanup: 0026) | M8 |
 | [0026](0026-data-retention-housekeeping.md) | Data retention and housekeeping (timed cleanup of expired tokens and delivered outbox rows) | Accepted | M11 |
+| [0027](0027-platform-administration-and-invitations.md) | Platform administration (tenants over HTTP) and invitations to tenant roles | Accepted | M12 |
 
 ## Template
 

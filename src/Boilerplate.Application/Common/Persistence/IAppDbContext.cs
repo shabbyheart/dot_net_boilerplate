@@ -19,6 +19,10 @@ public interface IAppDbContext
 
     DbSet<RoleAssignment> RoleAssignments { get; }
 
+    DbSet<Invitation> Invitations { get; }
+
+    DbSet<PlatformAdministrator> PlatformAdministrators { get; }
+
     DbSet<Project> Projects { get; }
 
     DbSet<OutboxMessage> OutboxMessages { get; }

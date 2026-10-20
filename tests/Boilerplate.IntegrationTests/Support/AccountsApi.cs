@@ -2,17 +2,12 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
-using System.Text.Json;
-using System.Text.RegularExpressions;
 using Boilerplate.Api.Controllers;
 using Boilerplate.Application.Common.Email;
 using Boilerplate.Application.Features.Accounts;
-using Boilerplate.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Boilerplate.IntegrationTests.Support;
 
@@ -20,7 +15,7 @@ namespace Boilerplate.IntegrationTests.Support;
 /// The API with local accounts enabled (ADR-0025), plus helpers for the account flows. E-mails are read from the
 /// outbox table: the dispatcher is off in tests, so queued messages keep their payload.
 /// </summary>
-internal sealed partial class AccountsApi(WebApplicationFactory<Program> host) : IAsyncDisposable
+internal sealed class AccountsApi(WebApplicationFactory<Program> host) : IAsyncDisposable
 {
     public const string Issuer = "https://accounts.tests.boilerplate.local";
     public const string Audience = "boilerplate-api";
@@ -101,35 +96,14 @@ internal sealed partial class AccountsApi(WebApplicationFactory<Program> host) :
     }
 
     /// <summary>The e-mails queued for <paramref name="to"/>, oldest first.</summary>
-    public async Task<List<EmailMessage>> EmailsToAsync(string to, CancellationToken cancellationToken)
-    {
-        await using var scope = host.Services.CreateAsyncScope();
-        var payloads = await scope.ServiceProvider.GetRequiredService<AppDbContext>().OutboxMessages
-            .AsNoTracking()
-            .Where(message => message.Type == EmailMessage.OutboxType && message.Payload.Contains(to))
-            .OrderBy(message => message.Id)
-            .Select(message => message.Payload)
-            .ToListAsync(cancellationToken);
-
-        return payloads
-            .Select(payload => JsonSerializer.Deserialize<EmailMessage>(payload, JsonSerializerOptions.Web)!)
-            .Where(email => email.To == to)
-            .ToList();
-    }
+    public Task<List<EmailMessage>> EmailsToAsync(string to, CancellationToken cancellationToken) =>
+        QueuedEmails.ToAsync(host.Services, to, cancellationToken);
 
     public async Task<EmailMessage> LastEmailToAsync(string to, CancellationToken cancellationToken) =>
         (await EmailsToAsync(to, cancellationToken)).Last();
 
     /// <summary>The token from the link in an account e-mail.</summary>
-    public static string TokenFrom(EmailMessage email)
-    {
-        var match = TokenParameter().Match(email.TextBody);
-        match.Success.ShouldBeTrue($"No link with a token in: {email.TextBody}");
-        return Uri.UnescapeDataString(match.Groups[1].Value);
-    }
+    public static string TokenFrom(EmailMessage email) => QueuedEmails.TokenFrom(email);
 
     public ValueTask DisposeAsync() => host.DisposeAsync();
-
-    [GeneratedRegex(@"[?&]token=([^\s&]+)")]
-    private static partial Regex TokenParameter();
 }
