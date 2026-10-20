@@ -61,6 +61,8 @@ Handler rules:
 - Not found: `throw new NotFoundException("Customer", id)` (404). Duplicate unique value: check first and throw
   `ConflictException` (409); the database index covers races and is translated to 409 too.
 - Never filter by tenant; the query filter does it.
+- Security-relevant changes (who may do what) call `AuditLog.Record(...)` before saving (ADR-0028). Ordinary data
+  such as projects is not audited.
 
 Register everything in `CustomersFeature.AddCustomersFeature()` (handlers and `IValidator<T>`, explicitly), like
 [`ProjectsFeature.cs`](../src/Boilerplate.Application/Features/Projects/ProjectsFeature.cs), and call it from

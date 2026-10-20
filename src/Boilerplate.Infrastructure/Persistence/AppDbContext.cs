@@ -4,6 +4,7 @@ using Boilerplate.Application.Common.Messaging;
 using Boilerplate.Application.Common.Persistence;
 using Boilerplate.Application.Common.Tenancy;
 using Boilerplate.Domain.Accounts;
+using Boilerplate.Domain.Auditing;
 using Boilerplate.Domain.Authorization;
 using Boilerplate.Domain.Common;
 using Boilerplate.Domain.Projects;
@@ -52,6 +53,8 @@ public class AppDbContext : IdentityUserContext<ApplicationUser, Guid>, IAppDbCo
 
     public DbSet<PlatformAdministrator> PlatformAdministrators => Set<PlatformAdministrator>();
 
+    public DbSet<AuditLogEntry> AuditLogEntries => Set<AuditLogEntry>();
+
     public DbSet<Project> Projects => Set<Project>();
 
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
@@ -65,6 +68,7 @@ public class AppDbContext : IdentityUserContext<ApplicationUser, Guid>, IAppDbCo
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
+        RejectAuditLogChanges();
         try
         {
             return base.SaveChanges(acceptAllChangesOnSuccess);
@@ -81,6 +85,7 @@ public class AppDbContext : IdentityUserContext<ApplicationUser, Guid>, IAppDbCo
 
     public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
+        RejectAuditLogChanges();
         try
         {
             return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
@@ -152,6 +157,15 @@ public class AppDbContext : IdentityUserContext<ApplicationUser, Guid>, IAppDbCo
         if (!hasTenantLeadingIndex)
         {
             entity.HasIndex(row => row.TenantId);
+        }
+    }
+
+    // The audit log is append-only (ADR-0028); only housekeeping removes entries, with bulk deletes that bypass this.
+    private void RejectAuditLogChanges()
+    {
+        if (ChangeTracker.Entries<AuditLogEntry>().Any(entry => entry.State is EntityState.Modified or EntityState.Deleted))
+        {
+            throw new InvalidOperationException("Audit log entries are append-only: they cannot be changed or deleted.");
         }
     }
 

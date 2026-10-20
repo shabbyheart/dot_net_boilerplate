@@ -1,5 +1,6 @@
 using Boilerplate.Application.Common.Messaging;
 using Boilerplate.Domain.Accounts;
+using Boilerplate.Domain.Auditing;
 using Boilerplate.Domain.Authorization;
 using Boilerplate.Domain.Projects;
 using Boilerplate.Domain.Tenants;
@@ -22,6 +23,8 @@ public interface IAppDbContext
     DbSet<Invitation> Invitations { get; }
 
     DbSet<PlatformAdministrator> PlatformAdministrators { get; }
+
+    DbSet<AuditLogEntry> AuditLogEntries { get; }
 
     DbSet<Project> Projects { get; }
 

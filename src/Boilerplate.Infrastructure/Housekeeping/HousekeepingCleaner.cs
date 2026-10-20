@@ -8,7 +8,7 @@ namespace Boilerplate.Infrastructure.Housekeeping;
 
 /// <summary>
 /// Deletes rows that are past their retention (ADR-0026): expired refresh and one-time tokens, expired invitations
-/// (ADR-0027) and delivered outbox messages. Dead-lettered outbox messages are kept; they need an operator. Each statement deletes at most one batch,
+/// (ADR-0027), delivered outbox messages and old audit log entries (ADR-0028). Dead-lettered outbox messages are kept; they need an operator. Each statement deletes at most one batch,
 /// so locks stay short, and deleting is idempotent, so several instances may run it at once.
 /// </summary>
 public sealed partial class HousekeepingCleaner(
@@ -24,6 +24,7 @@ public sealed partial class HousekeepingCleaner(
         var now = timeProvider.GetUtcNow();
         var tokensExpiredBefore = now - settings.ExpiredTokenRetention;
         var outboxProcessedBefore = now - settings.ProcessedOutboxRetention;
+        var auditLogBefore = now - settings.AuditLogRetention;
 
         await using var scope = scopeFactory.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -63,10 +64,20 @@ public sealed partial class HousekeepingCleaner(
                 .ExecuteDeleteAsync(cancellationToken),
             settings.BatchSize);
 
-        var result = new HousekeepingResult(refreshTokens, oneTimeTokens, invitations, outboxMessages);
+        // The audit log is append-only for use cases; retention is the one deletion (ADR-0028). Every tenant, as above.
+        var auditLogEntries = await DeleteInBatchesAsync(
+            () => db.AuditLogEntries
+                .IgnoreQueryFilters([AppDbContext.TenantQueryFilter])
+                .Where(entry => entry.OccurredAt < auditLogBefore)
+                .OrderBy(entry => entry.Id)
+                .Take(settings.BatchSize)
+                .ExecuteDeleteAsync(cancellationToken),
+            settings.BatchSize);
+
+        var result = new HousekeepingResult(refreshTokens, oneTimeTokens, invitations, outboxMessages, auditLogEntries);
         if (result.Total > 0)
         {
-            LogDeleted(refreshTokens, oneTimeTokens, invitations, outboxMessages);
+            LogDeleted(refreshTokens, oneTimeTokens, invitations, outboxMessages, auditLogEntries);
         }
 
         return result;
@@ -89,12 +100,12 @@ public sealed partial class HousekeepingCleaner(
 
     [LoggerMessage(
         Level = LogLevel.Information,
-        Message = "Housekeeping deleted {RefreshTokens} refresh tokens, {OneTimeTokens} one-time tokens, {Invitations} invitations and {OutboxMessages} delivered outbox messages")]
-    private partial void LogDeleted(int refreshTokens, int oneTimeTokens, int invitations, int outboxMessages);
+        Message = "Housekeeping deleted {RefreshTokens} refresh tokens, {OneTimeTokens} one-time tokens, {Invitations} invitations, {OutboxMessages} delivered outbox messages and {AuditLogEntries} audit log entries")]
+    private partial void LogDeleted(int refreshTokens, int oneTimeTokens, int invitations, int outboxMessages, int auditLogEntries);
 }
 
 /// <summary>Rows deleted by one cleanup round.</summary>
-public sealed record HousekeepingResult(int RefreshTokens, int OneTimeTokens, int Invitations, int OutboxMessages)
+public sealed record HousekeepingResult(int RefreshTokens, int OneTimeTokens, int Invitations, int OutboxMessages, int AuditLogEntries)
 {
-    public int Total => RefreshTokens + OneTimeTokens + Invitations + OutboxMessages;
+    public int Total => RefreshTokens + OneTimeTokens + Invitations + OutboxMessages + AuditLogEntries;
 }

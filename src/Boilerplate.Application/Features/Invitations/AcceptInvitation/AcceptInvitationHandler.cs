@@ -1,3 +1,4 @@
+using Boilerplate.Application.Common.Auditing;
 using Boilerplate.Application.Common.Persistence;
 using Boilerplate.Application.Common.Security;
 using Boilerplate.Application.Common.Tenancy;
@@ -12,6 +13,7 @@ public sealed class AcceptInvitationHandler(
     IAppDbContext db,
     ICurrentUser currentUser,
     TenantOverride tenantOverride,
+    AuditLog auditLog,
     TimeProvider timeProvider)
 {
     /// <summary>Gives the signed-in caller the invitation's role in the invitation's tenant (ADR-0027).</summary>
@@ -41,6 +43,13 @@ public sealed class AcceptInvitationHandler(
         {
             db.RoleAssignments.Add(RoleAssignment.Create(userId, role));
         }
+
+        auditLog.Record(
+            AuditActions.InvitationAccepted,
+            invitation.Id,
+            alreadyAssigned
+                ? $"User {userId} accepted an invitation to role '{role.Name}', which they already held."
+                : $"User {userId} accepted an invitation to role '{role.Name}' and received it.");
 
         // The invitation's row version stops two concurrent acceptances from both succeeding (409).
         await db.SaveChangesAsync(cancellationToken);

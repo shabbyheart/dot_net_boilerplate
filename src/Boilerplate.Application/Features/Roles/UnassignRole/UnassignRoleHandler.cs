@@ -1,3 +1,4 @@
+using Boilerplate.Application.Common.Auditing;
 using Boilerplate.Application.Common.Exceptions;
 using Boilerplate.Application.Common.Persistence;
 using Boilerplate.Domain.Authorization;
@@ -5,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Boilerplate.Application.Features.Roles.UnassignRole;
 
-public sealed class UnassignRoleHandler(IAppDbContext db, RoleEscalationGuard guard)
+public sealed class UnassignRoleHandler(IAppDbContext db, RoleEscalationGuard guard, AuditLog auditLog)
 {
     /// <summary>Takes the role away from the user; effective on their next request (ADR-0017).</summary>
     /// <exception cref="NotFoundException">The role does not exist, or the user does not hold it.</exception>
@@ -27,6 +28,7 @@ public sealed class UnassignRoleHandler(IAppDbContext db, RoleEscalationGuard gu
         }
 
         db.RoleAssignments.Remove(assignment);
+        auditLog.Record(AuditActions.RoleUnassigned, role.Id, $"Removed role '{role.Name}' from user {userId}.");
         await db.SaveChangesAsync(cancellationToken);
     }
 }

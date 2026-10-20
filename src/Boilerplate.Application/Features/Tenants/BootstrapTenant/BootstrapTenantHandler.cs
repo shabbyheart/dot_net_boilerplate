@@ -1,5 +1,7 @@
+using Boilerplate.Application.Common.Auditing;
 using Boilerplate.Application.Common.Persistence;
 using Boilerplate.Application.Common.Tenancy;
+using Boilerplate.Application.Features.Roles;
 using Boilerplate.Domain.Authorization;
 using Boilerplate.Domain.Tenants;
 using Microsoft.EntityFrameworkCore;
@@ -10,7 +12,7 @@ namespace Boilerplate.Application.Features.Tenants.BootstrapTenant;
 /// Creates a tenant with its administrator role and first administrator (ADR-0022). Idempotent: anything that
 /// already exists is reused, and everything is saved in one transaction.
 /// </summary>
-public sealed class BootstrapTenantHandler(IAppDbContext db, TenantOverride tenantOverride)
+public sealed class BootstrapTenantHandler(IAppDbContext db, TenantOverride tenantOverride, AuditLog auditLog)
 {
     public async Task<BootstrapTenantResult> HandleAsync(BootstrapTenantRequest request, CancellationToken cancellationToken)
     {
@@ -26,6 +28,10 @@ public sealed class BootstrapTenantHandler(IAppDbContext db, TenantOverride tena
 
         // From here on, tenant-owned reads and writes act for this tenant (no token claim exists in a command).
         tenantOverride.Set(tenant.Id);
+        if (tenantCreated)
+        {
+            auditLog.Record(AuditActions.TenantCreated, tenant.Id, $"Created tenant '{tenant.Name}' with the bootstrap command.");
+        }
 
         var administrators = await db.Roles.SingleOrDefaultAsync(role => role.IsAdministrator, cancellationToken);
         var roleCreated = administrators is null;
@@ -33,6 +39,7 @@ public sealed class BootstrapTenantHandler(IAppDbContext db, TenantOverride tena
         {
             administrators = Role.CreateAdministrators();
             db.Roles.Add(administrators);
+            auditLog.Record(AuditActions.RoleCreated, administrators.Id, RoleAuditing.Created(administrators));
         }
 
         var alreadyAssigned = !roleCreated && await db.RoleAssignments.AnyAsync(
@@ -41,6 +48,10 @@ public sealed class BootstrapTenantHandler(IAppDbContext db, TenantOverride tena
         if (!alreadyAssigned)
         {
             db.RoleAssignments.Add(RoleAssignment.Create(request.AdminUserId, administrators));
+            auditLog.Record(
+                AuditActions.RoleAssigned,
+                administrators.Id,
+                $"Assigned role '{administrators.Name}' to user {request.AdminUserId}.");
         }
 
         await db.SaveChangesAsync(cancellationToken);
